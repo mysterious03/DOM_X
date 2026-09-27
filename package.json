@@ -16,11 +16,14 @@
     "dev": "vite",
     "build": "node build-extension.js",
     "mcp": "node dist/mcp/index.js",
+    "domx": "node ./bin/dom-x.js",
+    "launch": "node ./bin/dom-x.js launch",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "bin": {
-    "dom-x": "./bin/dom-x.js"
+    "dom-x": "./bin/dom-x.js",
+    "domx": "./bin/dom-x.js"
   },
   "keywords": [
     "dom-x",

@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050811" />
+      <stop offset="45%" stop-color="#0a1022" />
+      <stop offset="100%" stop-color="#04060d" />
+    </linearGradient>
+
+    <!-- Card Gradients -->
+    <linearGradient id="cliCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(15, 23, 42, 0.95)" />
+      <stop offset="100%" stop-color="rgba(8, 12, 24, 0.9)" />
+    </linearGradient>
+
+    <linearGradient id="browserCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(15, 23, 42, 0.92)" />
+      <stop offset="100%" stop-color="rgba(10, 16, 32, 0.95)" />
+    </linearGradient>
+
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Grid Pattern -->
+    <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.03)" stroke-width="1" />
+    </pattern>
+  </defs>
+
+  <style>
+    .font-sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace; }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  <rect width="1200" height="630" fill="url(#gridPattern)" />
+
+  <!-- Radial Glow Behind Cards -->
+  <circle cx="280" cy="340" r="260" fill="rgba(56, 189, 248, 0.08)" filter="url(#glowCyan)" />
+  <circle cx="920" cy="340" r="260" fill="rgba(129, 140, 248, 0.08)" filter="url(#glowCyan)" />
+
+  <!-- Top Hero Header -->
+  <g transform="translate(60, 40)">
+    <!-- Brand Icon -->
+    <rect x="0" y="2" width="42" height="42" rx="12" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="1.8" />
+    <path d="M 23 8 L 13 23 L 21 23 L 19 34 L 29 19 L 21 19 Z" fill="#38bdf8" filter="url(#glowCyan)" />
+
+    <!-- Brand Titles -->
+    <text x="56" y="26" class="font-sans" font-weight="900" font-size="30px" fill="#ffffff" letter-spacing="-0.5px">DOM_X</text>
+    <text x="180" y="24" class="font-sans" font-weight="500" font-size="16px" fill="#64748b">|</text>
+    <text x="195" y="25" class="font-sans" font-weight="700" font-size="16px" fill="#38bdf8" letter-spacing="-0.2px">Real-Time Browser Perception &amp; Action MCP Server</text>
+    
+    <text x="56" y="47" class="font-sans" font-weight="400" font-size="14px" fill="#94a3b8">
+      Replaces expensive screenshot polling with 15ms structured DOM events, bounding-box action tags (@e1, @e2), and a 1-command CLI.
+    </text>
+
+    <!-- Top Badges -->
+    <g transform="translate(770, 4)">
+      <rect x="0" y="0" width="115" height="26" rx="13" fill="rgba(56, 189, 248, 0.12)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text x="12" y="17" class="font-sans" font-size="12px" font-weight="700" fill="#38bdf8">⚡ MCP Ready</text>
+
+      <rect x="125" y="0" width="110" height="26" rx="13" fill="rgba(52, 211, 153, 0.12)" stroke="rgba(52, 211, 153, 0.4)" stroke-width="1" />
+      <text x="137" y="17" class="font-sans" font-size="12px" font-weight="700" fill="#34d399">15ms Latency</text>
+
+      <rect x="245" y="0" width="85" height="26" rx="13" fill="rgba(168, 85, 247, 0.12)" stroke="rgba(168, 85, 247, 0.4)" stroke-width="1" />
+      <text x="257" y="17" class="font-sans" font-size="12px" font-weight="700" fill="#c084fc">16 Tools</text>
+    </g>
+  </g>
+
+  <!-- Left: Interactive CLI Terminal Card -->
+  <g transform="translate(60, 120)">
+    <rect width="520" height="460" rx="14" fill="url(#cliCardGrad)" stroke="rgba(56, 189, 248, 0.25)" stroke-width="1.5" />
+    
+    <!-- Window Bar -->
+    <path d="M 0 14 Q 0 0 14 0 L 506 0 Q 520 0 520 14 L 520 40 L 0 40 Z" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" />
+    <circle cx="22" cy="20" r="5.5" fill="#ef4444" />
+    <circle cx="38" cy="20" r="5.5" fill="#f59e0b" />
+    <circle cx="54" cy="20" r="5.5" fill="#10b981" />
+    <text x="260" y="24" text-anchor="middle" class="font-mono" font-size="12px" font-weight="600" fill="#94a3b8">terminal &mdash; npx domx</text>
+
+    <!-- Terminal Content -->
+    <g transform="translate(24, 65)">
+      <!-- Line 1: install command -->
+      <text x="0" y="18" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">npx domx install claude</tspan></text>
+      <text x="0" y="40" class="font-mono" font-size="12px" fill="#34d399">✔ Injected DOM_X into Claude Desktop config</text>
+      <text x="16" y="58" class="font-mono" font-size="11px" fill="#64748b">→ %APPDATA%\Claude\claude_desktop_config.json</text>
+
+      <!-- Line 2: launch command -->
+      <text x="0" y="95" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">npx domx launch https://github.com</tspan></text>
+      <text x="0" y="117" class="font-mono" font-size="12px" fill="#34d399">✔ Located Chrome: C:\Program Files\Google\Chrome</text>
+      <text x="0" y="135" class="font-mono" font-size="12px" fill="#34d399">✔ Auto-loaded unpacked extension from ./dist</text>
+      <text x="0" y="153" class="font-mono" font-size="12px" fill="#a855f7">⚡ Chrome running with DOM_X active</text>
+
+      <!-- Line 3: MCP bridge listening -->
+      <text x="0" y="195" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">npx domx serve</tspan></text>
+      <rect x="0" y="208" width="472" height="150" rx="8" fill="rgba(0, 0, 0, 0.4)" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1" />
+      <text x="14" y="232" class="font-mono" font-size="11.5px" fill="#38bdf8">[DOM_X MCP Bridge] WebSocket listening on ws://127.0.0.1:8765</text>
+      <text x="14" y="252" class="font-mono" font-size="11.5px" fill="#38bdf8">[DOM_X MCP] Running on stdio transport for AI clients</text>
+      <text x="14" y="274" class="font-mono" font-size="11.5px" fill="#34d399">[Active Tab Ready] &quot;GitHub &bull; Dashboard&quot; (https://github.com)</text>
+      <text x="14" y="296" class="font-mono" font-size="11.5px" fill="#e2e8f0">&gt; Claude called: <tspan fill="#fbbf24">get_page_dom({ preset: &apos;interactive&apos; })</tspan></text>
+      <text x="14" y="316" class="font-mono" font-size="11.5px" fill="#a855f7">&lt; Emitted 14 actionable elements (@e1 .. @e14) in 12ms</text>
+      <text x="14" y="336" class="font-mono" font-size="11.5px" fill="#e2e8f0">&gt; Claude called: <tspan fill="#38bdf8">click_element({ target: &apos;@e3&apos; })</tspan> &rarr; OK</text>
+    </g>
+  </g>
+
+  <!-- Right: Live Chrome Browser Tab & HUD Card -->
+  <g transform="translate(620, 120)">
+    <rect width="520" height="460" rx="14" fill="url(#browserCardGrad)" stroke="rgba(129, 140, 248, 0.25)" stroke-width="1.5" />
+    
+    <!-- Browser Top Bar -->
+    <path d="M 0 14 Q 0 0 14 0 L 506 0 Q 520 0 520 14 L 520 44 L 0 44 Z" fill="rgba(15, 23, 42, 0.9)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" />
+    <circle cx="22" cy="22" r="5" fill="#64748b" />
+    <circle cx="36" cy="22" r="5" fill="#64748b" />
+    <circle cx="50" cy="22" r="5" fill="#64748b" />
+
+    <!-- Address Bar -->
+    <rect x="70" y="10" width="350" height="24" rx="6" fill="rgba(0, 0, 0, 0.35)" stroke="rgba(255, 255, 255, 0.1)" stroke-width="1" />
+    <text x="82" y="26" class="font-mono" font-size="11px" fill="#94a3b8">&#128274; https://github.com/login</text>
+
+    <!-- DOM_X HUD Badge -->
+    <rect x="430" y="10" width="76" height="24" rx="6" fill="#0284c7" />
+    <text x="442" y="26" class="font-sans" font-size="11px" font-weight="700" fill="#ffffff">&#128065; HUD ON</text>
+
+    <!-- Webpage Content Simulation -->
+    <g transform="translate(35, 65)">
+      <!-- Page Heading -->
+      <text x="140" y="30" class="font-sans" font-size="18px" font-weight="700" fill="#ffffff">Sign in to GitHub</text>
+
+      <!-- Form Container -->
+      <rect x="45" y="50" width="360" height="240" rx="8" fill="rgba(2, 6, 23, 0.7)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" />
+
+      <!-- Field 1: Username -->
+      <text x="65" y="80" class="font-sans" font-size="12px" fill="#cbd5e1">Username or email</text>
+      <!-- HUD Box for @e1 -->
+      <g>
+        <rect x="65" y="90" width="320" height="34" rx="4" fill="rgba(56, 189, 248, 0.08)" stroke="#38bdf8" stroke-width="1.8" />
+        <rect x="63" y="80" width="30" height="15" rx="3" fill="#0284c7" />
+        <text x="67" y="91" class="font-mono" font-size="9px" font-weight="bold" fill="#ffffff">@e1</text>
+        <text x="75" y="112" class="font-mono" font-size="12px" fill="#64748b">octocat@github.com</text>
+      </g>
+
+      <!-- Field 2: Password -->
+      <text x="65" y="148" class="font-sans" font-size="12px" fill="#cbd5e1">Password</text>
+      <!-- HUD Box for @e2 -->
+      <g>
+        <rect x="65" y="158" width="320" height="34" rx="4" fill="rgba(56, 189, 248, 0.08)" stroke="#38bdf8" stroke-width="1.8" />
+        <rect x="63" y="148" width="30" height="15" rx="3" fill="#0284c7" />
+        <text x="67" y="159" class="font-mono" font-size="9px" font-weight="bold" fill="#ffffff">@e2</text>
+        <text x="75" y="180" class="font-mono" font-size="14px" fill="#64748b">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</text>
+      </g>
+
+      <!-- Button: Sign in -->
+      <!-- HUD Box for @e3 -->
+      <g>
+        <rect x="65" y="210" width="320" height="36" rx="6" fill="#16a34a" stroke="#4ade80" stroke-width="2" filter="url(#glowGreen)" />
+        <rect x="63" y="200" width="30" height="15" rx="3" fill="#15803d" />
+        <text x="67" y="211" class="font-mono" font-size="9px" font-weight="bold" fill="#ffffff">@e3</text>
+        <text x="195" y="233" text-anchor="middle" class="font-sans" font-size="13px" font-weight="bold" fill="#ffffff">Sign In</text>
+      </g>
+
+      <!-- Live Mutation Pulse Event Card -->
+      <g transform="translate(10, 310)">
+        <rect x="0" y="0" width="430" height="65" rx="8" fill="rgba(56, 189, 248, 0.1)" stroke="#38bdf8" stroke-width="1.5" />
+        <circle cx="24" cy="22" r="7" fill="#38bdf8" filter="url(#glowCyan)" />
+        <text x="40" y="26" class="font-sans" font-size="12px" font-weight="bold" fill="#38bdf8">15ms Live Mutation Detected &bull; High Importance (5/5)</text>
+        <text x="40" y="48" class="font-mono" font-size="11px" fill="#e2e8f0">BUTTON#sign-in: text &quot;Sign in&quot; &rarr; &quot;Authenticating...&quot;</text>
+      </g>
+    </g>
+  </g>
+</svg>
