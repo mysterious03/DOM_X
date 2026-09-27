@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/dom-x-interactive-cli.svg" alt="DOM_X: Interactive CLI &amp; Live Browser HUD" width="100%" style="border-radius: 12px; margin-bottom: 24px;" />
+![DOM_X: Interactive CLI & Live Browser HUD](assets/dom-x-interactive-cli.png)
 
 # ⚡ DOM_X
 ### *Real-Time Browser Perception & Action MCP Server for AI Agents*
@@ -17,9 +17,80 @@
   <b>DOM_X gives AI assistants (Claude Desktop, Cursor, Antigravity, custom agents) real-time perception and precision action control over live browser tabs—replacing expensive screenshot polling with 15ms structured DOM events, screen bounding boxes, and action tags.</b>
 </p>
 
-[The Problem](#-the-problem-in-30-seconds) • [How It Works](#-how-it-works) • [One-Command CLI](#-one-command-cli-suite) • [All 16 MCP Tools](#-all-16-mcp-tools-reference) • [In-Browser HUD](#-in-browser-visual-hud) • [Setup Guides](#-setup-walkthrough)
+[Quickstart for New Users](#-quickstart-for-new-users-3-minutes) • [The Problem](#-the-problem-in-30-seconds) • [Architecture](#-architecture) • [One-Command CLI](#-one-command-cli-suite) • [All 16 MCP Tools](#-all-16-mcp-tools-reference) • [In-Browser HUD](#-in-browser-visual-hud)
 
 </div>
+
+---
+
+## ⚡ Quickstart for New Users (3 Minutes)
+
+If you are a new developer or user wanting your AI agent (Claude Desktop, Cursor, etc.) to browse and interact with the web, follow these 3 simple steps:
+
+### Prerequisites
+* **Node.js**: v18 or higher (`node -v`)
+* **Google Chrome**: (or any Chromium browser: Brave, Edge, Arc)
+
+---
+
+### Step 1: Clone and Build DOM_X
+Open your terminal and run:
+```bash
+git clone https://github.com/mysterious03/DOM_X.git
+cd DOM_X
+npm install
+npm run build
+npm link
+```
+> [!TIP]
+> Running `npm link` makes the `domx` command globally available in any terminal window. If you prefer not to link, replace `domx` with `node bin/dom-x.js` or `npm run domx --`.
+
+---
+
+### Step 2: Auto-Configure Your AI Assistant
+DOM_X provides a 1-command installer that automatically detects your client's config file and injects the DOM_X MCP server:
+
+* **For Claude Desktop:**
+  ```bash
+  domx install claude
+  ```
+  *(Restart Claude Desktop after running this).*
+
+* **For Cursor IDE:**
+  ```bash
+  domx install cursor
+  ```
+
+* **For Both:**
+  ```bash
+  domx install all
+  ```
+
+---
+
+### Step 3: Launch Chrome with DOM_X
+Start Chrome with the DOM_X extension pre-loaded with one command:
+```bash
+domx launch https://github.com
+```
+Chrome will open with DOM_X active, connected directly to your local MCP bridge (`ws://127.0.0.1:8765`).
+
+---
+
+### Step 4: Talk to Your AI Assistant!
+Now, open Claude Desktop or Cursor and ask the AI to interact with your live browser tab:
+
+> **Try these real prompts:**
+> * *"Go to news.ycombinator.com and summarize the top 3 stories."*
+> * *"Find the login button, click it, type 'octocat' into the username field, and tell me what changed on the screen."*
+> * *"Search for 'modelcontextprotocol' on GitHub and list the top 5 repositories."*
+> * *"Wait for the checkout button to appear on the page and click it."*
+
+#### What Happens Under the Hood:
+1. When you send a prompt, your AI client invokes DOM_X's `get_page_dom` tool via the MCP protocol.
+2. DOM_X scans the active browser tab, assigns stable element IDs (`@e1`, `@e2`, `@e3`), draws translucent color-coded HUD bounding boxes in Chrome, and returns a token-efficient summary in **12 milliseconds**.
+3. Your AI issues targeted actions (`click_element`, `type_into_element`, `scroll_page`) referencing `@e1`, `@e2`, etc.
+4. If a modal opens, toast alert appears, or form validates, DOM_X's **15ms mutation listener** informs the AI immediately—**zero screenshot polling required**.
 
 ---
 
@@ -50,7 +121,7 @@ Webpage DOM ──► MutationObserver ──► 96% Noise Filter ──► Boun
 1. **Token-Efficient Perception:** Extracts clean, structured interactive elements with bounding boxes and action IDs (`@e1`, `@e2`, `@e3`...).
 2. **15ms Change-Intelligence:** Informs the AI immediately when a toast appears, modal opens, or form validation fires—without taking screenshots.
 3. **Full Precision Action Suite:** The AI can click, hover, type, select dropdowns, send keypresses, scroll, and evaluate scripts directly.
-4. **Visual HUD:** Optionally renders live bounding box tags directly in your Chrome window so you can watch what the AI sees in real time.
+4. **Visual HUD:** Renders live bounding box tags directly in your Chrome window so you can watch what the AI sees in real time.
 5. **One-Command CLI:** Installs into Claude Desktop or Cursor and launches Chrome with one command.
 
 ---
@@ -83,69 +154,33 @@ Webpage DOM ──► MutationObserver ──► 96% Noise Filter ──► Boun
 
 ## 🚀 One-Command CLI Suite
 
-### 1. Build and Link DOM_X
-```bash
-git clone https://github.com/mysterious03/DOM_X.git
-cd DOM_X
-npm install
-npm run build
-npm link
-```
-> [!NOTE]
-> Running `npm link` registers `domx` and `dom-x` globally in your terminal!
-> Alternatively, from the repository root you can run: `node ./bin/dom-x.js <command>` or `npm run domx -- <command>`.
+### Available CLI Commands
+
+| Command | Description | Example |
+| :--- | :--- | :--- |
+| `domx install <client>` | Auto-configures AI client (`claude`, `cursor`, or `all`) | `domx install claude` |
+| `domx launch [url]` | Launches Chrome with DOM_X pre-loaded | `domx launch https://github.com` |
+| `domx status` | Runs diagnostic check on Node, Chrome, and bundle files | `domx status` |
+| `domx serve` | Starts the MCP server on stdio (default) | `domx serve` |
+| `domx help` | Displays the help menu | `domx help` |
 
 ---
 
-### 2. Auto-Install into AI Assistants
-You don't need to manually edit config files! Let DOM_X automatically detect and inject the MCP configuration:
-
-```bash
-# Auto-configure Claude Desktop (claude_desktop_config.json)
-domx install claude
-
-# Auto-configure Cursor (mcp.json)
-domx install cursor
-
-# Configure both Claude Desktop and Cursor simultaneously
-domx install all
-```
-
----
-
-### 3. One-Click Chrome Auto-Launcher
-Automatically locate Google Chrome on your system and launch it with the DOM_X extension pre-loaded:
-
-```bash
-# Launches Chrome with DOM_X active and opens target URL
-domx launch https://github.com
-```
-
----
-
-### 4. Check Diagnostics & System Status
+### Diagnostic Status Check
+To verify your setup is ready:
 ```bash
 domx status
 ```
 Output:
-```
+```text
 === DOM_X System Status ===
 Node Version:  v24.19.0
 MCP Port:      8765
-Root Dir:      C:\Users\ASUS\OneDrive\Desktop\DOM_PULSE
+Root Dir:      C:\Users\...\DOM_X
 Dist Built:    Yes
 MCP Bundle:    Yes
 Chrome Found:  C:\Program Files\Google\Chrome\Application\chrome.exe
 ```
-
----
-
-### 5. Run MCP Server (Stdio)
-```bash
-domx serve
-# or simply: domx
-```
-*(Listens on WebSocket `ws://127.0.0.1:8765` for browser tabs and connects to AI clients via stdio JSON-RPC).*
 
 ---
 
@@ -265,13 +300,13 @@ DOM_X includes a real-time visual perception overlay built directly into the Chr
 
 ---
 
-## 📖 Manual Configuration
+## 📖 Manual Configuration (Alternative to `domx install`)
 
-If you prefer manual configuration over `domx install`:
+If you prefer to configure your client manually rather than using `domx install`:
 
 ### Claude Desktop (`claude_desktop_config.json`)
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+* **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+* **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 {
@@ -279,7 +314,7 @@ If you prefer manual configuration over `domx install`:
     "dom-x": {
       "command": "node",
       "args": [
-        "c:/Users/ASUS/OneDrive/Desktop/DOM_PULSE/dist/mcp/index.js"
+        "<ABSOLUTE_PATH_TO_DOM_X>/dist/mcp/index.js"
       ]
     }
   }
@@ -287,13 +322,19 @@ If you prefer manual configuration over `domx install`:
 ```
 
 ### Cursor (`mcp.json`)
+Open Cursor Settings $\rightarrow$ Features $\rightarrow$ MCP Servers $\rightarrow$ Add New MCP Server:
+* **Name**: `dom-x`
+* **Type**: `command`
+* **Command**: `node <ABSOLUTE_PATH_TO_DOM_X>/dist/mcp/index.js`
+
+Or paste into `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
     "dom-x": {
       "command": "node",
       "args": [
-        "c:/Users/ASUS/OneDrive/Desktop/DOM_PULSE/dist/mcp/index.js"
+        "<ABSOLUTE_PATH_TO_DOM_X>/dist/mcp/index.js"
       ]
     }
   }
@@ -308,7 +349,7 @@ Run the automated test suite:
 ```bash
 npm test
 ```
-All **47 unit and integration tests** pass locally with 100% pass rate.
+All **47 unit and integration tests** pass locally with 100% pass rate across all 9 test suites.
 
 ---
 

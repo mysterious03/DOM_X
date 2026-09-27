@@ -61,21 +61,21 @@ npx dom-x launch https://github.com
     "dom-x": {
       "command": "node",
       "args": [
-        "c:/Users/ASUS/OneDrive/Desktop/DOM_PULSE/dist/mcp/index.js"
+        "<ABSOLUTE_PATH_TO_DOM_X>/dist/mcp/index.js"
       ]
     }
   }
 }
 ```
 
-#### Antigravity / Cursor (`mcp_config.json`)
+#### Antigravity / Cursor (`mcp.json` or `.cursor/mcp.json`)
 ```json
 {
   "mcpServers": {
     "dom-x": {
       "command": "node",
       "args": [
-        "c:/Users/ASUS/OneDrive/Desktop/DOM_PULSE/dist/mcp/index.js"
+        "<ABSOLUTE_PATH_TO_DOM_X>/dist/mcp/index.js"
       ]
     }
   }

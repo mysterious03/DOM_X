@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <defs>
     <!-- Background Gradient -->
@@ -90,30 +91,30 @@
     <circle cx="22" cy="20" r="5.5" fill="#ef4444" />
     <circle cx="38" cy="20" r="5.5" fill="#f59e0b" />
     <circle cx="54" cy="20" r="5.5" fill="#10b981" />
-    <text x="260" y="24" text-anchor="middle" class="font-mono" font-size="12px" font-weight="600" fill="#94a3b8">terminal &mdash; npx domx</text>
+    <text x="260" y="24" text-anchor="middle" class="font-mono" font-size="12px" font-weight="600" fill="#94a3b8">terminal &#8212; domx</text>
 
     <!-- Terminal Content -->
     <g transform="translate(24, 65)">
       <!-- Line 1: install command -->
-      <text x="0" y="18" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">npx domx install claude</tspan></text>
+      <text x="0" y="18" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">domx install claude</tspan></text>
       <text x="0" y="40" class="font-mono" font-size="12px" fill="#34d399">✔ Injected DOM_X into Claude Desktop config</text>
       <text x="16" y="58" class="font-mono" font-size="11px" fill="#64748b">→ %APPDATA%\Claude\claude_desktop_config.json</text>
 
       <!-- Line 2: launch command -->
-      <text x="0" y="95" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">npx domx launch https://github.com</tspan></text>
+      <text x="0" y="95" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">domx launch https://github.com</tspan></text>
       <text x="0" y="117" class="font-mono" font-size="12px" fill="#34d399">✔ Located Chrome: C:\Program Files\Google\Chrome</text>
       <text x="0" y="135" class="font-mono" font-size="12px" fill="#34d399">✔ Auto-loaded unpacked extension from ./dist</text>
       <text x="0" y="153" class="font-mono" font-size="12px" fill="#a855f7">⚡ Chrome running with DOM_X active</text>
 
       <!-- Line 3: MCP bridge listening -->
-      <text x="0" y="195" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">npx domx serve</tspan></text>
+      <text x="0" y="195" class="font-mono" font-size="13px" fill="#94a3b8">$ <tspan fill="#38bdf8" font-weight="bold">domx serve</tspan></text>
       <rect x="0" y="208" width="472" height="150" rx="8" fill="rgba(0, 0, 0, 0.4)" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1" />
       <text x="14" y="232" class="font-mono" font-size="11.5px" fill="#38bdf8">[DOM_X MCP Bridge] WebSocket listening on ws://127.0.0.1:8765</text>
       <text x="14" y="252" class="font-mono" font-size="11.5px" fill="#38bdf8">[DOM_X MCP] Running on stdio transport for AI clients</text>
-      <text x="14" y="274" class="font-mono" font-size="11.5px" fill="#34d399">[Active Tab Ready] &quot;GitHub &bull; Dashboard&quot; (https://github.com)</text>
-      <text x="14" y="296" class="font-mono" font-size="11.5px" fill="#e2e8f0">&gt; Claude called: <tspan fill="#fbbf24">get_page_dom({ preset: &apos;interactive&apos; })</tspan></text>
+      <text x="14" y="274" class="font-mono" font-size="11.5px" fill="#34d399">[Active Tab Ready] "GitHub • Dashboard" (https://github.com)</text>
+      <text x="14" y="296" class="font-mono" font-size="11.5px" fill="#e2e8f0">&gt; Claude called: <tspan fill="#fbbf24">dom_get_state({ preset: 'interactive' })</tspan></text>
       <text x="14" y="316" class="font-mono" font-size="11.5px" fill="#a855f7">&lt; Emitted 14 actionable elements (@e1 .. @e14) in 12ms</text>
-      <text x="14" y="336" class="font-mono" font-size="11.5px" fill="#e2e8f0">&gt; Claude called: <tspan fill="#38bdf8">click_element({ target: &apos;@e3&apos; })</tspan> &rarr; OK</text>
+      <text x="14" y="336" class="font-mono" font-size="11.5px" fill="#e2e8f0">&gt; Claude called: <tspan fill="#38bdf8">dom_interact({ target: '@e3', action: 'click' })</tspan> → OK</text>
     </g>
   </g>
 
@@ -160,7 +161,7 @@
         <rect x="65" y="158" width="320" height="34" rx="4" fill="rgba(56, 189, 248, 0.08)" stroke="#38bdf8" stroke-width="1.8" />
         <rect x="63" y="148" width="30" height="15" rx="3" fill="#0284c7" />
         <text x="67" y="159" class="font-mono" font-size="9px" font-weight="bold" fill="#ffffff">@e2</text>
-        <text x="75" y="180" class="font-mono" font-size="14px" fill="#64748b">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</text>
+        <text x="75" y="180" class="font-mono" font-size="14px" fill="#64748b">••••••••</text>
       </g>
 
       <!-- Button: Sign in -->
@@ -176,8 +177,8 @@
       <g transform="translate(10, 310)">
         <rect x="0" y="0" width="430" height="65" rx="8" fill="rgba(56, 189, 248, 0.1)" stroke="#38bdf8" stroke-width="1.5" />
         <circle cx="24" cy="22" r="7" fill="#38bdf8" filter="url(#glowCyan)" />
-        <text x="40" y="26" class="font-sans" font-size="12px" font-weight="bold" fill="#38bdf8">15ms Live Mutation Detected &bull; High Importance (5/5)</text>
-        <text x="40" y="48" class="font-mono" font-size="11px" fill="#e2e8f0">BUTTON#sign-in: text &quot;Sign in&quot; &rarr; &quot;Authenticating...&quot;</text>
+        <text x="40" y="26" class="font-sans" font-size="12px" font-weight="bold" fill="#38bdf8">15ms Live Mutation Detected • High Importance (5/5)</text>
+        <text x="40" y="48" class="font-mono" font-size="11px" fill="#e2e8f0">BUTTON#sign-in: text "Sign in" → "Authenticating..."</text>
       </g>
     </g>
   </g>
