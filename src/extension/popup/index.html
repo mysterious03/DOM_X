@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOMPulse Dev Inspector</title>
+  <title>DOM_X MCP Inspector</title>
   <link rel="stylesheet" href="./popup.css">
 </head>
 <body>
@@ -16,11 +16,14 @@
           <span class="pulse-ring"></span>
         </div>
         <div class="title-group">
-          <h1>DOMPulse</h1>
-          <span class="version-tag">v1.1</span>
+          <h1>DOM_X</h1>
+          <span class="version-tag">v1.2</span>
         </div>
       </div>
       <div class="header-actions">
+        <button id="toggle-hud-btn" class="btn btn-outline" title="Toggle AI Visual HUD (Bounding boxes & @eX tags)">
+          <span>👁️ HUD</span>
+        </button>
         <button id="toggle-monitor-btn" class="btn btn-outline" title="Pause or Resume Monitoring">
           <span class="status-dot active" id="status-indicator"></span>
           <span id="status-text">Active</span>

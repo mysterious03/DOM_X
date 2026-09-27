@@ -1,5 +1,5 @@
 /**
- * DOMPulse Background Service Worker (Manifest V3)
+ * DOM_X Background Service Worker (Manifest V3)
  * Relays events, caches active tab metrics, and manages badge states.
  */
 
@@ -26,7 +26,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender.tab?.id;
 
-  if (message.type === 'DOMPULSE_EVENT_BATCH' && tabId !== undefined) {
+  if ((message.type === 'DOM_X_EVENT_BATCH' || message.type === 'DOMPULSE_EVENT_BATCH') && tabId !== undefined) {
     let data = tabCache.get(tabId);
     if (!data) {
       data = {
@@ -55,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message.type === 'DOMPULSE_METRICS_UPDATE' && tabId !== undefined) {
+  if ((message.type === 'DOM_X_METRICS_UPDATE' || message.type === 'DOMPULSE_METRICS_UPDATE') && tabId !== undefined) {
     const data = tabCache.get(tabId);
     if (data) {
       data.metrics = message.metrics;
@@ -64,7 +64,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message.type === 'DOMPULSE_GET_CACHED_TAB_DATA') {
+  if (message.type === 'DOM_X_GET_CACHED_TAB_DATA' || message.type === 'DOMPULSE_GET_CACHED_TAB_DATA') {
     const targetTabId = message.tabId;
     const cached = tabCache.get(targetTabId);
     sendResponse(cached || null);

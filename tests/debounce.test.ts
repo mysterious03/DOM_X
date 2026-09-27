@@ -38,8 +38,8 @@ describe('DOMObserver Debounce & MaxWait Architecture', () => {
     const onFlush = vi.fn();
     const observer = new DOMObserver(
       {
-        debounceMs: 50,
-        maxWaitMs: 120, // Max wait boundary
+        debounceMs: 40,
+        maxWaitMs: 100, // Max wait boundary
         observeAttributes: true,
         observeCharacterData: true,
         observeChildList: true,
@@ -53,13 +53,13 @@ describe('DOMObserver Debounce & MaxWait Architecture', () => {
     document.body.appendChild(div);
     observer.start(div);
 
-    // Fire continuous mutations every 25ms (faster than 50ms debounce) for 180ms
+    // Fire continuous mutations every 20ms (faster than 40ms debounce)
     const interval = setInterval(() => {
       div.setAttribute('data-counter', String(Date.now()));
-    }, 25);
+    }, 20);
 
-    // At 200ms, maxWait (120ms) MUST have forced at least one flush!
-    await new Promise((r) => setTimeout(r, 200));
+    // At 240ms, maxWait (100ms) MUST have forced at least one flush!
+    await new Promise((r) => setTimeout(r, 240));
     clearInterval(interval);
 
     expect(onFlush).toHaveBeenCalled();

@@ -15,7 +15,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["chrome", "vitest/globals"]
+    "types": ["chrome", "node", "vitest/globals"]
   },
-  "include": ["src", "tests", "testbench"]
+  "include": ["src", "tests"]
 }

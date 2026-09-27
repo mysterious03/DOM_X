@@ -250,7 +250,7 @@ async function init(): Promise<void> {
   }
 
   try {
-    chrome.tabs.sendMessage(currentTabId, { type: 'DOMPULSE_GET_STATE' }, (response) => {
+    chrome.tabs.sendMessage(currentTabId, { type: 'DOM_X_GET_STATE' }, (response) => {
       if (chrome.runtime.lastError) return;
       if (response) {
         if (response.metrics) updateMetricsUI(response.metrics);
@@ -265,7 +265,7 @@ async function init(): Promise<void> {
   }
 
   chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'DOMPULSE_EVENT_BATCH') {
+    if (message.type === 'DOM_X_EVENT_BATCH' || message.type === 'DOMPULSE_EVENT_BATCH') {
       if (message.metrics) updateMetricsUI(message.metrics);
       if (message.batch?.events) {
         allEvents.push(...message.batch.events);
@@ -274,15 +274,32 @@ async function init(): Promise<void> {
         }
         renderEvents();
       }
-    } else if (message.type === 'DOMPULSE_METRICS_UPDATE') {
+    } else if (message.type === 'DOM_X_METRICS_UPDATE' || message.type === 'DOMPULSE_METRICS_UPDATE') {
       if (message.metrics) updateMetricsUI(message.metrics);
     }
   });
 }
 
+const toggleHudBtn = document.getElementById('toggle-hud-btn');
+let isHudActive = false;
+
+if (toggleHudBtn) {
+  toggleHudBtn.addEventListener('click', () => {
+    if (!currentTabId) return;
+    isHudActive = !isHudActive;
+    chrome.tabs.sendMessage(currentTabId, { type: 'DOM_X_TOGGLE_HUD', enabled: isHudActive }, (response) => {
+      if (response && response.hudActive !== undefined) {
+        isHudActive = response.hudActive;
+      }
+      toggleHudBtn.style.color = isHudActive ? '#38bdf8' : '';
+      toggleHudBtn.style.borderColor = isHudActive ? '#38bdf8' : '';
+    });
+  });
+}
+
 toggleMonitorBtn.addEventListener('click', () => {
   if (!currentTabId) return;
-  const action = isMonitoringActive ? 'DOMPULSE_PAUSE' : 'DOMPULSE_RESUME';
+  const action = isMonitoringActive ? 'DOM_X_PAUSE' : 'DOM_X_RESUME';
   chrome.tabs.sendMessage(currentTabId, { type: action }, (response) => {
     if (response?.metrics) {
       updateMetricsUI(response.metrics);
@@ -294,7 +311,7 @@ clearBtn.addEventListener('click', () => {
   allEvents = [];
   renderEvents();
   if (currentTabId) {
-    chrome.tabs.sendMessage(currentTabId, { type: 'DOMPULSE_CLEAR' }, (response) => {
+    chrome.tabs.sendMessage(currentTabId, { type: 'DOM_X_CLEAR' }, (response) => {
       if (response?.metrics) {
         updateMetricsUI(response.metrics);
       }

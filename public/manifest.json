@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "DOMPulse",
-  "version": "1.0.0",
-  "description": "Perception and change-intelligence layer for AI browser agents. Detects meaningful DOM state changes and screen coordinates with noise reduction.",
+  "name": "DOM_X",
+  "version": "1.2.0",
+  "description": "Browser perception & change-intelligence layer for AI agents via Model Context Protocol (MCP).",
   "permissions": [
     "activeTab"
   ],
@@ -11,7 +11,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "DOMPulse Inspector",
+    "default_title": "DOM_X Inspector",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
