@@ -16,8 +16,9 @@ DOM_X provides an official **Model Context Protocol (MCP)** server. This allows 
                                │ WebSocket (ws://127.0.0.1:8765)
 ┌──────────────────────────────▼──────────────────────────────┐
 │                    DOM_X MCP Server                         │
-│  - Runs via stdio or `node dist/mcp/index.js`               │
+│  - Runs via stdio: `node dist/mcp/index.js` or `npx dom-x`  │
 │  - Bridges MCP JSON-RPC protocol with browser WebSocket    │
+│  - One-command CLI installer and Chrome launcher            │
 └──────────────────────────────▲──────────────────────────────┘
                                │ MCP Stdio Transport
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -29,26 +30,30 @@ DOM_X provides an official **Model Context Protocol (MCP)** server. This allows 
 
 ---
 
-## Quick Start
+## One-Command CLI Installation
 
-### 1. Build the Extension & MCP Server
+### Auto-Install into AI Clients
 ```bash
-npm run build
+# Auto-detects and adds DOM_X to Claude Desktop:
+npx dom-x install claude
+
+# Auto-detects and adds DOM_X to Cursor:
+npx dom-x install cursor
+
+# Configure both:
+npx dom-x install all
 ```
-This generates:
-- `dist/` (Unpacked Chrome Extension)
-- `dist/mcp/index.js` (Compiled MCP Server)
 
-### 2. Load the Extension into Google Chrome
-1. Open Chrome and go to `chrome://extensions/`.
-2. Enable **Developer mode** (top-right toggle).
-3. Click **Load unpacked** and select the [`dist/`](../dist) folder.
+### Auto-Launch Chrome with DOM_X
+```bash
+npx dom-x launch https://github.com
+```
 
-### 3. Add to your AI Client Config
+### Manual Configuration
 
 #### Claude Desktop (`claude_desktop_config.json`)
-On Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 {
@@ -79,16 +84,23 @@ On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ---
 
-## Available MCP Tools
+## Available MCP Tools (16 Tools)
 
 | Tool | Description |
 |---|---|
-| `get_page_dom` | Reads structured, token-efficient interactive elements (`@e1`, `@e2`...), tags, roles, labels, and bounding boxes. |
+| `get_page_dom` | Reads structured, token-efficient interactive elements (`@e1`, `@e2`...), tags, roles, labels, and bounding boxes. Supports filtering by preset (`forms`, `headings`, `interactive`), CSS query, and text search. |
 | `get_dom_mutations` | Fetches recent 15ms meaningful DOM change events (alerts, modals, cart updates, navigation). |
 | `wait_for_dom_change` | Asynchronously waits for a DOM mutation to occur after an action. |
 | `click_element` | Clicks an element by its ID (e.g. `@e1`) or CSS selector. |
+| `hover_element` | Hovers mouse over an element to reveal tooltips or dropdown menus. |
 | `type_into_element` | Types text into an input field or textarea by its ID (e.g. `@e3`). |
+| `select_option` | Selects an option in a `<select>` dropdown by value or visible text. |
+| `press_key` | Dispatches keyboard key events (e.g. "Escape", "Enter", "Tab", "ArrowDown"). |
+| `inspect_element` | Deep inspection of computed styles, attributes, DOM hierarchy breadcrumbs, and state. |
 | `scroll_page` | Scrolls the page or scrolls an element into view. |
 | `highlight_element` | Draws a temporary visual highlight ring around an element on screen. |
+| `navigate_to` | Navigates the active browser tab to any URL. |
+| `eval_script` | Safely evaluates arbitrary JavaScript expression in the active tab context. |
+| `get_dom_diff` | Computes a net change diff since the previous DOM scan. |
 | `toggle_visual_hud` | Toggles visual bounding boxes and `@eX` badges on the live webpage in Chrome. |
 | `get_browser_status` | Returns connection status, active tab URL, and page title. |

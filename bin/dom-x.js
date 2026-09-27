@@ -1,2 +1,7 @@
 #!/usr/bin/env node
-import '../dist/mcp/index.js';
+import { runCLI } from '../dist/cli/index.js';
+
+runCLI(process.argv).catch((err) => {
+  console.error('[DOM_X Fatal Error]', err);
+  process.exit(1);
+});

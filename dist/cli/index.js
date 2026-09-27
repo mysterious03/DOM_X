@@ -1,7 +1,11 @@
-#!/usr/bin/env node
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { fileURLToPath } from "url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ListToolsRequestSchema, CallToolRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
@@ -697,12 +701,165 @@ ${formatted}`
     });
   }
 }
-async function main() {
-  const port = process.env.DOM_X_PORT || process.env.DOMPULSE_PORT ? parseInt(process.env.DOM_X_PORT || process.env.DOMPULSE_PORT, 10) : 8765;
-  const server = new DOMPulseMCPServer(port);
-  await server.start();
+const __filename$1 = fileURLToPath(import.meta.url);
+const __dirname$1 = path.dirname(__filename$1);
+const ROOT_DIR = path.resolve(__dirname$1, "..", "..");
+function findChromeExecutable() {
+  const platform = os.platform();
+  if (platform === "win32") {
+    const paths = [
+      path.join(process.env.PROGRAMFILES || "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe")
+    ];
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p;
+    }
+  } else if (platform === "darwin") {
+    const p = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    if (fs.existsSync(p)) return p;
+  } else {
+    const paths = ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium-browser", "/usr/bin/chromium"];
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return null;
 }
-main().catch((err) => {
-  console.error("[DOM_X MCP] Fatal server error:", err);
-  process.exit(1);
-});
+function getClientConfigPaths() {
+  const platform = os.platform();
+  let claudePath = null;
+  let cursorPath = null;
+  if (platform === "win32") {
+    claudePath = path.join(process.env.APPDATA || "", "Claude", "claude_desktop_config.json");
+    cursorPath = path.join(os.homedir(), ".cursor", "mcp.json");
+  } else if (platform === "darwin") {
+    claudePath = path.join(os.homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");
+    cursorPath = path.join(os.homedir(), ".cursor", "mcp.json");
+  } else {
+    claudePath = path.join(os.homedir(), ".config", "Claude", "claude_desktop_config.json");
+    cursorPath = path.join(os.homedir(), ".cursor", "mcp.json");
+  }
+  return { claudePath, cursorPath };
+}
+function installConfig(target) {
+  const { claudePath, cursorPath } = getClientConfigPaths();
+  const mcpIndexPath = path.resolve(ROOT_DIR, "dist", "mcp", "index.js");
+  const serverEntry = {
+    command: "node",
+    args: [mcpIndexPath]
+  };
+  const targets = target === "all" ? ["claude", "cursor"] : [target];
+  for (const t of targets) {
+    const configPath = t === "claude" ? claudePath : cursorPath;
+    if (!configPath) continue;
+    try {
+      const dir = path.dirname(configPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      let config = { mcpServers: {} };
+      if (fs.existsSync(configPath)) {
+        try {
+          config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          if (!config.mcpServers) config.mcpServers = {};
+        } catch {
+          config = { mcpServers: {} };
+        }
+      }
+      config.mcpServers["dom-x"] = serverEntry;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      console.log(`[DOM_X] Successfully installed DOM_X MCP server into ${t.toUpperCase()} config:`);
+      console.log(`         ${configPath}`);
+    } catch (err) {
+      console.error(`[DOM_X] Failed to write config for ${t}:`, err instanceof Error ? err.message : err);
+    }
+  }
+}
+function launchBrowser(url = "https://google.com") {
+  const chromePath = findChromeExecutable();
+  if (!chromePath) {
+    console.error("[DOM_X] Could not locate Google Chrome executable automatically.");
+    console.error("        Please open Chrome manually and load unpacked extension from:");
+    console.error(`        ${path.resolve(ROOT_DIR, "dist")}`);
+    process.exit(1);
+  }
+  const distDir = path.resolve(ROOT_DIR, "dist");
+  console.log(`[DOM_X] Launching Google Chrome with DOM_X extension loaded:`);
+  console.log(`        Extension: ${distDir}`);
+  console.log(`        Target URL: ${url}`);
+  const args = [
+    `--load-extension=${distDir}`,
+    `--disable-extensions-except=${distDir}`,
+    url
+  ];
+  const child = spawn(chromePath, args, {
+    detached: true,
+    stdio: "ignore"
+  });
+  child.unref();
+  console.log("[DOM_X] Chrome launched successfully!");
+}
+async function runCLI(argv) {
+  const command = argv[2] || "serve";
+  switch (command) {
+    case "serve": {
+      const port = process.env.DOM_X_PORT ? parseInt(process.env.DOM_X_PORT, 10) : 8765;
+      const server = new DOMPulseMCPServer(port);
+      await server.start();
+      break;
+    }
+    case "launch": {
+      const url = argv[3] || "https://google.com";
+      launchBrowser(url);
+      break;
+    }
+    case "install": {
+      const client = argv[3] || "all";
+      installConfig(client);
+      break;
+    }
+    case "status": {
+      const port = process.env.DOM_X_PORT || "8765";
+      console.log("=== DOM_X System Status ===");
+      console.log(`Node Version:  ${process.version}`);
+      console.log(`MCP Port:      ${port}`);
+      console.log(`Root Dir:      ${ROOT_DIR}`);
+      console.log(`Dist Built:    ${fs.existsSync(path.resolve(ROOT_DIR, "dist", "content.js")) ? "Yes" : "No"}`);
+      console.log(`MCP Bundle:    ${fs.existsSync(path.resolve(ROOT_DIR, "dist", "mcp", "index.js")) ? "Yes" : "No"}`);
+      const chrome = findChromeExecutable();
+      console.log(`Chrome Found:  ${chrome || "Not Found"}`);
+      break;
+    }
+    case "--help":
+    case "-h":
+    case "help": {
+      console.log(`
+DOM_X CLI - Browser Perception & Change-Intelligence MCP Server
+
+Usage:
+  npx dom-x [command] [options]
+
+Commands:
+  serve                 Run MCP server over stdio (default)
+  launch [url]          Launch Chrome with DOM_X extension pre-loaded
+  install [client]      Auto-configure AI client (claude | cursor | all)
+  status                Display diagnostic info and paths
+  help                  Show this help screen
+
+Examples:
+  npx dom-x install claude     # Installs DOM_X into Claude Desktop
+  npx dom-x install cursor     # Installs DOM_X into Cursor
+  npx dom-x launch             # Opens Chrome with DOM_X loaded
+  npx dom-x                    # Starts MCP server on stdio
+`);
+      break;
+    }
+    default:
+      console.error(`Unknown command: ${command}. Run "dom-x --help" for available commands.`);
+      process.exit(1);
+  }
+}
+export {
+  runCLI
+};

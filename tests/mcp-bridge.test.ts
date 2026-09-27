@@ -61,6 +61,14 @@ describe('DOMPulse MCP Bridge Communication', () => {
     expect(clicked).toBe(true);
   });
 
+  it('handles HOVER command via MCP bridge', async () => {
+    const snapshot = await server.sendCommand('GET_DOM', { visibleOnly: false });
+    const cartEl = snapshot.elements.find((e: any) => e.name === 'Add to Cart');
+
+    const res = await server.sendCommand('HOVER', { target: cartEl.id });
+    expect(res.success).toBe(true);
+  });
+
   it('handles TYPE command via MCP bridge', async () => {
     const snapshot = await server.sendCommand('GET_DOM', { visibleOnly: false });
     const inputEl = snapshot.elements.find((e: any) => e.tag === 'INPUT');
@@ -70,6 +78,20 @@ describe('DOMPulse MCP Bridge Communication', () => {
     expect(res.success).toBe(true);
     const searchBox = document.getElementById('search-box') as HTMLInputElement;
     expect(searchBox.value).toBe('DOM_X');
+  });
+
+  it('handles INSPECT command via MCP bridge', async () => {
+    const snapshot = await server.sendCommand('GET_DOM', { visibleOnly: false });
+    const cartEl = snapshot.elements.find((e: any) => e.name === 'Add to Cart');
+
+    const res = await server.sendCommand('INSPECT', { target: cartEl.id });
+    expect(res.success).toBe(true);
+    expect(res.inspection.tag).toBe('BUTTON');
+  });
+
+  it('handles EVAL command via MCP bridge', async () => {
+    const res = await server.sendCommand('EVAL', { expression: '10 * 5' });
+    expect(res).toBe(50);
   });
 
   it('collects mutation events pushed from browser client', async () => {

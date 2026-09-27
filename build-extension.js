@@ -62,6 +62,42 @@ async function runBuild() {
     },
   });
 
+  console.log('--- 4. Building DOM_X CLI Suite ---');
+  // 4. Build CLI Runner
+  await build({
+    configFile: false,
+    publicDir: false,
+    build: {
+      outDir: 'dist/cli',
+      emptyOutDir: false,
+      ssr: true,
+      lib: {
+        entry: resolve('src/cli/index.ts'),
+        formats: ['es'],
+        fileName: () => 'index.js',
+      },
+      rollupOptions: {
+        external: [
+          'ws',
+          'stream',
+          'node:stream',
+          'child_process',
+          'fs',
+          'path',
+          'os',
+          'url',
+          'http',
+          'https',
+          'events',
+          'crypto',
+          'node:crypto',
+          '@modelcontextprotocol/sdk',
+          /^@modelcontextprotocol\/sdk\/.*/,
+        ],
+      },
+    },
+  });
+
   const mcpDistPath = resolve('dist/mcp/index.js');
   if (fs.existsSync(mcpDistPath)) {
     let content = fs.readFileSync(mcpDistPath, 'utf8');
@@ -76,7 +112,7 @@ async function runBuild() {
     fs.copyFileSync('dist/src/extension/popup/index.html', 'dist/popup.html');
   }
 
-  console.log('--- Build complete! dist/ is ready for Chrome and dist/mcp/index.js is ready for MCP ---');
+  console.log('--- Build complete! dist/ is ready for Chrome, MCP, and CLI ---');
 }
 
 runBuild().catch((err) => {

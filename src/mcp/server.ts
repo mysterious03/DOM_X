@@ -1,6 +1,6 @@
 /**
- * DOMPulse MCP (Model Context Protocol) Server
- * Exposes browser perception, DOM change-intelligence, and action tools to AI agents.
+ * DOM_X MCP (Model Context Protocol) Server
+ * Exposes browser perception, DOM change-intelligence, inspection, and action tools to AI agents.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -59,10 +59,19 @@ export class DOMPulseMCPServer {
                   description: 'If true (default), only returns elements currently visible in the viewport.',
                   default: true,
                 },
-                interactiveOnly: {
-                  type: 'boolean',
-                  description: 'If true (default), filters for interactive nodes (buttons, inputs, links, forms, dialogs).',
-                  default: true,
+                preset: {
+                  type: 'string',
+                  enum: ['interactive', 'all', 'forms', 'headings'],
+                  description: 'Element filtering preset (default: "interactive").',
+                  default: 'interactive',
+                },
+                query: {
+                  type: 'string',
+                  description: 'Optional CSS selector to scope extraction (e.g. "form.checkout" or "#main-content").',
+                },
+                search: {
+                  type: 'string',
+                  description: 'Optional text query to filter elements by label, name, or tag.',
                 },
                 format: {
                   type: 'string',
@@ -128,6 +137,21 @@ export class DOMPulseMCPServer {
             },
           },
           {
+            name: 'hover_element',
+            description:
+              'Hover the mouse over an element to trigger tooltips, dropdown menus, or interactive hover states.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                target: {
+                  type: 'string',
+                  description: 'The target element reference ID (e.g. "@e2") or CSS selector.',
+                },
+              },
+              required: ['target'],
+            },
+          },
+          {
             name: 'type_into_element',
             description:
               'Type text into an input field or textarea in the active browser tab.',
@@ -154,6 +178,73 @@ export class DOMPulseMCPServer {
                 },
               },
               required: ['target', 'text'],
+            },
+          },
+          {
+            name: 'select_option',
+            description: 'Select an option in a <select> dropdown by its value or visible label.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                target: {
+                  type: 'string',
+                  description: 'The select element reference ID (e.g. "@e4") or CSS selector.',
+                },
+                valueOrText: {
+                  type: 'string',
+                  description: 'The option value or visible text to select.',
+                },
+              },
+              required: ['target', 'valueOrText'],
+            },
+          },
+          {
+            name: 'press_key',
+            description: 'Dispatch a keyboard key or shortcut (e.g. "Enter", "Escape", "Tab", "ArrowDown", "Backspace").',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                key: {
+                  type: 'string',
+                  description: 'The key name to press (e.g. "Escape", "Enter", "Tab", "ArrowDown").',
+                },
+                target: {
+                  type: 'string',
+                  description: 'Optional target element ID (defaults to currently focused element).',
+                },
+                ctrl: {
+                  type: 'boolean',
+                  description: 'Whether Ctrl modifier is pressed.',
+                },
+                shift: {
+                  type: 'boolean',
+                  description: 'Whether Shift modifier is pressed.',
+                },
+                alt: {
+                  type: 'boolean',
+                  description: 'Whether Alt modifier is pressed.',
+                },
+                meta: {
+                  type: 'boolean',
+                  description: 'Whether Meta (Cmd/Win) modifier is pressed.',
+                },
+              },
+              required: ['key'],
+            },
+          },
+          {
+            name: 'inspect_element',
+            description:
+              'Retrieve in-depth technical inspection of an element: computed styles, attributes, parent breadcrumb path, child count, and interactivity state.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                target: {
+                  type: 'string',
+                  description: 'The target element reference ID (e.g. "@e1") or CSS selector.',
+                },
+              },
+              required: ['target'],
             },
           },
           {
@@ -200,6 +291,42 @@ export class DOMPulseMCPServer {
             },
           },
           {
+            name: 'navigate_to',
+            description: 'Navigate the active browser tab to a new URL.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                url: {
+                  type: 'string',
+                  description: 'The URL to navigate to (e.g. "https://github.com").',
+                },
+              },
+              required: ['url'],
+            },
+          },
+          {
+            name: 'eval_script',
+            description: 'Safely evaluate a JavaScript expression in the active webpage context and return the result.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                expression: {
+                  type: 'string',
+                  description: 'JavaScript code snippet to evaluate (e.g. "window.location.pathname" or "document.title").',
+                },
+              },
+              required: ['expression'],
+            },
+          },
+          {
+            name: 'get_dom_diff',
+            description: 'Compare current DOM state with previous scan to list added, removed, or changed elements.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+          {
             name: 'toggle_visual_hud',
             description:
               'Toggle real-time visual bounding box overlays and @eX tags in Chrome so human users can see what the AI sees.',
@@ -236,7 +363,9 @@ export class DOMPulseMCPServer {
             const format = (args.format as string) || 'summary';
             const snapshot = await this.bridge.sendCommand('GET_DOM', {
               visibleOnly: args.visibleOnly ?? true,
-              interactiveOnly: args.interactiveOnly ?? true,
+              preset: args.preset || 'interactive',
+              query: args.query,
+              search: args.search,
             });
 
             if (format === 'json') {
@@ -261,11 +390,13 @@ export class DOMPulseMCPServer {
               };
             }
 
-            const formatted = events.map((e, idx) => {
-              const el = e.targetElement ? `${e.targetElement.tag} (${e.targetElement.selector})` : 'DOM';
-              const text = e.targetElement?.textSnippet ? ` "${e.targetElement.textSnippet}"` : '';
-              return `[Event #${idx + 1}] ${e.type} on ${el}${text} at +${e.timestamp}ms`;
-            }).join('\n');
+            const formatted = events
+              .map((e, idx) => {
+                const el = e.targetElement ? `${e.targetElement.tag} (${e.targetElement.selector})` : 'DOM';
+                const text = e.targetElement?.textSnippet ? ` "${e.targetElement.textSnippet}"` : '';
+                return `[Event #${idx + 1}] ${e.type} on ${el}${text} at +${e.timestamp}ms`;
+              })
+              .join('\n');
 
             return {
               content: [
@@ -304,6 +435,14 @@ export class DOMPulseMCPServer {
             };
           }
 
+          case 'hover_element': {
+            const target = String(args.target || '');
+            const result = await this.bridge.sendCommand('HOVER', { target });
+            return {
+              content: [{ type: 'text', text: result.message || `Hovered over element ${target}` }],
+            };
+          }
+
           case 'type_into_element': {
             const target = String(args.target || '');
             const text = String(args.text || '');
@@ -318,6 +457,68 @@ export class DOMPulseMCPServer {
             });
             return {
               content: [{ type: 'text', text: result.message || `Typed "${text}" into ${target}` }],
+            };
+          }
+
+          case 'select_option': {
+            const target = String(args.target || '');
+            const valueOrText = String(args.valueOrText || '');
+            const result = await this.bridge.sendCommand('SELECT_OPTION', { target, valueOrText });
+            return {
+              content: [{ type: 'text', text: result.message || `Selected option in ${target}` }],
+            };
+          }
+
+          case 'press_key': {
+            const key = String(args.key || 'Enter');
+            const target = args.target ? String(args.target) : undefined;
+            const modifiers = {
+              ctrl: Boolean(args.ctrl),
+              alt: Boolean(args.alt),
+              shift: Boolean(args.shift),
+              meta: Boolean(args.meta),
+            };
+
+            const result = await this.bridge.sendCommand('PRESS_KEY', { key, target, modifiers });
+            return {
+              content: [{ type: 'text', text: result.message || `Pressed key ${key}` }],
+            };
+          }
+
+          case 'inspect_element': {
+            const target = String(args.target || '');
+            const result = await this.bridge.sendCommand('INSPECT', { target });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(result.inspection || result, null, 2) }],
+            };
+          }
+
+          case 'navigate_to': {
+            const url = String(args.url || '');
+            const result = await this.bridge.sendCommand('NAVIGATE', { url });
+            return {
+              content: [{ type: 'text', text: result.message || `Navigated to ${url}` }],
+            };
+          }
+
+          case 'eval_script': {
+            const expression = String(args.expression || '');
+            const result = await this.bridge.sendCommand('EVAL', { expression });
+            if (!result.success) {
+              return {
+                isError: true,
+                content: [{ type: 'text', text: `Eval Error: ${result.error || 'Execution failed'}` }],
+              };
+            }
+            return {
+              content: [{ type: 'text', text: JSON.stringify(result.result, null, 2) }],
+            };
+          }
+
+          case 'get_dom_diff': {
+            const result = await this.bridge.sendCommand('GET_DIFF', {});
+            return {
+              content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
             };
           }
 
@@ -347,7 +548,7 @@ export class DOMPulseMCPServer {
 
           case 'toggle_visual_hud': {
             const enabled = Boolean(args.enabled);
-            const result = await this.bridge.sendCommand('TOGGLE_HUD', { enabled });
+            await this.bridge.sendCommand('TOGGLE_HUD', { enabled });
             return {
               content: [
                 {

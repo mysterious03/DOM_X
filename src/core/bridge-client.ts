@@ -158,6 +158,58 @@ export class DOMPulseBridgeClient {
           break;
         }
 
+        case 'HOVER': {
+          const target = String(params.target || '');
+          const res = this.perceiver.hover(target);
+          this.send({ id, ...res });
+          break;
+        }
+
+        case 'SELECT_OPTION': {
+          const target = String(params.target || '');
+          const valueOrText = String(params.valueOrText || '');
+          const res = this.perceiver.selectOption(target, valueOrText);
+          this.send({ id, ...res });
+          break;
+        }
+
+        case 'PRESS_KEY': {
+          const key = String(params.key || 'Enter');
+          const target = params.target ? String(params.target) : undefined;
+          const modifiers = (params.modifiers as any) || {};
+          const res = this.perceiver.pressKey(key, target, modifiers);
+          this.send({ id, ...res });
+          break;
+        }
+
+        case 'INSPECT': {
+          const target = String(params.target || '');
+          const res = this.perceiver.inspect(target);
+          this.send({ id, ...res });
+          break;
+        }
+
+        case 'EVAL': {
+          const expr = String(params.expression || '');
+          const res = this.perceiver.evalScript(expr);
+          this.send({ id, ...res });
+          break;
+        }
+
+        case 'NAVIGATE': {
+          const url = String(params.url || '');
+          const res = this.perceiver.navigate(url);
+          this.send({ id, ...res });
+          break;
+        }
+
+        case 'GET_DIFF': {
+          const snapshot = this.perceiver.scan();
+          const diff = this.perceiver.computeDiff(snapshot);
+          this.send({ id, success: true, result: diff });
+          break;
+        }
+
         case 'TOGGLE_HUD': {
           const enabled = Boolean(params.enabled);
           const active = this.perceiver.toggleHUD(enabled);
