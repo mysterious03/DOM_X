@@ -1,6 +1,11 @@
 /**
  * DOM_X Background Service Worker (Manifest V3)
- * Relays events, caches active tab metrics, and manages badge states.
+ * Maintains persistent WebSocket connection to the DOM_X MCP Server Bridge (ws://127.0.0.1:8765),
+ * relays tool commands to active webpage content scripts, forwards 15ms DOM mutations,
+ * and manages badge status.
+ *
+ * NOTE: Connecting from the Service Worker completely bypasses webpage CSP (Content Security Policy)
+ * and Mixed Content blocks, guaranteeing 100% connectivity on all HTTPS sites (GitHub, Google, Amazon, etc.).
  */
 
 interface TabData {
@@ -17,7 +22,166 @@ interface TabData {
 
 const tabCache = new Map<number, TabData>();
 
-// Handle tab close cleanup
+let ws: WebSocket | null = null;
+let isConnected = false;
+const BRIDGE_URL = 'ws://127.0.0.1:8765';
+
+/**
+ * Initializes and maintains WebSocket connection to DOM_X MCP server.
+ */
+function connectBridge(): void {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  try {
+    ws = new WebSocket(BRIDGE_URL);
+
+    ws.onopen = () => {
+      isConnected = true;
+      console.log('[DOM_X Background] Connected to MCP Bridge on', BRIDGE_URL);
+      notifyActiveTab();
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        handleBridgeCommand(msg);
+      } catch (err) {
+        console.error('[DOM_X Background] Error parsing bridge message:', err);
+      }
+    };
+
+    ws.onclose = () => {
+      isConnected = false;
+      setTimeout(connectBridge, 3000);
+    };
+
+    ws.onerror = () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  } catch {
+    setTimeout(connectBridge, 3000);
+  }
+}
+
+/**
+ * Sends a message back to the DOM_X MCP Bridge.
+ */
+function sendToBridge(payload: unknown): void {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+  }
+}
+
+/**
+ * Informs the MCP Bridge which tab is currently active.
+ */
+async function notifyActiveTab(): Promise<void> {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (tab && tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+      sendToBridge({
+        type: 'TAB_READY',
+        url: tab.url,
+        title: tab.title || 'Untitled Page',
+        tabId: tab.id,
+      });
+    }
+  } catch (err) {
+    console.debug('[DOM_X Background] Tab query error:', err);
+  }
+}
+
+/**
+ * Dispatches an MCP command to the active tab's content script.
+ */
+async function handleBridgeCommand(msg: { id: string; action: string; params?: Record<string, unknown> }): Promise<void> {
+  const { id, action, params = {} } = msg;
+
+  if (action === 'NAVIGATE') {
+    const targetUrl = params.url as string;
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = tabs[0];
+      if (tab && tab.id) {
+        await chrome.tabs.update(tab.id, { url: targetUrl });
+        sendToBridge({ id, success: true, message: `Navigating to ${targetUrl}` });
+      } else {
+        const newTab = await chrome.tabs.create({ url: targetUrl });
+        sendToBridge({ id, success: true, message: `Opened new tab at ${targetUrl}`, tabId: newTab.id });
+      }
+    } catch (err: unknown) {
+      sendToBridge({ id, success: false, message: err instanceof Error ? err.message : String(err) });
+    }
+    return;
+  }
+
+  // Find active tab for DOM inspection / interaction
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+
+    if (!tab || !tab.id) {
+      sendToBridge({
+        id,
+        success: false,
+        message: 'No active browser tab found. Please open a webpage in Chrome.',
+      });
+      return;
+    }
+
+    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://'))) {
+      sendToBridge({
+        id,
+        success: false,
+        message: 'Cannot interact with internal Chrome pages (chrome://). Please navigate to a real website (e.g. https://google.com).',
+      });
+      return;
+    }
+
+    // Forward command to content script in the active tab
+    chrome.tabs.sendMessage(tab.id, msg, (response) => {
+      if (chrome.runtime.lastError) {
+        sendToBridge({
+          id,
+          success: false,
+          message: `Tab communication error: ${chrome.runtime.lastError.message}. Make sure the webpage has finished loading.`,
+        });
+        return;
+      }
+
+      sendToBridge({
+        id,
+        success: response ? response.success !== false : true,
+        ...(response || {}),
+      });
+    });
+  } catch (err: unknown) {
+    sendToBridge({
+      id,
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+// Track tab activation & navigation
+chrome.tabs.onActivated.addListener(() => {
+  notifyActiveTab();
+});
+
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+  if (tab.active && (changeInfo.status === 'complete' || changeInfo.url)) {
+    notifyActiveTab();
+  }
+});
+
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabCache.delete(tabId);
 });
@@ -25,6 +189,19 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender.tab?.id;
+
+  // Forward 15ms DOM mutations from content script directly to MCP Bridge
+  if (message.type === 'DOM_MUTATIONS' || message.type === 'DOM_X_MUTATIONS') {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'DOM_MUTATIONS',
+        url: sender.tab?.url || '',
+        events: message.events || [],
+      }));
+    }
+    sendResponse({ received: true });
+    return true;
+  }
 
   if ((message.type === 'DOM_X_EVENT_BATCH' || message.type === 'DOMPULSE_EVENT_BATCH') && tabId !== undefined) {
     let data = tabCache.get(tabId);
@@ -42,6 +219,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       data.events.push(...message.batch.events);
       if (data.events.length > 100) {
         data.events = data.events.slice(-100);
+      }
+
+      // Also forward events to MCP bridge
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'DOM_MUTATIONS',
+          url: sender.tab?.url || '',
+          events: message.batch.events,
+        }));
       }
     }
 
@@ -73,3 +259,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return false;
 });
+
+// Boot WebSocket bridge connection
+connectBridge();

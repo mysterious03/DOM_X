@@ -168,8 +168,9 @@ ${BOLD}Available DOM_X Interactive Commands:${RESET}
 
         case 'launch':
         case 'open': {
-          const url = args[0] || 'https://github.com';
+          const url = args[0] || 'https://google.com';
           console.log(`${CYAN}⚡ Launching Chrome with DOM_X at: ${url}...${RESET}`);
+          console.log(`${DIM}💡 Tip: You can launch any website by passing its URL (e.g. /launch https://example.com)${RESET}`);
           launchBrowser(url);
           break;
         }
