@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "description": "Perception and change-intelligence layer for AI browser agents. Detects meaningful DOM state changes and screen coordinates with noise reduction.",
   "permissions": [
-    "storage",
     "activeTab"
   ],
   "host_permissions": [
@@ -27,7 +26,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "icons": {

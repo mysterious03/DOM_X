@@ -70,6 +70,9 @@ export class NavigationObserver {
     };
     window.addEventListener('hashchange', this.hashchangeListener);
 
+    // 5. Ensure cleanup if page is unloaded or extension context is killed
+    window.addEventListener('pagehide', () => this.stop(), { once: true });
+
     this.isObserving = true;
   }
 

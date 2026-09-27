@@ -128,7 +128,7 @@ export class DOMPulseEngine {
   private handleRawBatch(rawRecords: MutationRecord[]): void {
     if (rawRecords.length === 0) return;
 
-    const { batch, rawCount, filteredCount, deduplicatedCount, processingTimeMs } = processAndGroupMutations(rawRecords);
+    const { batch, rawCount, filteredCount, deduplicatedCount, processingTimeMs } = processAndGroupMutations(rawRecords, this.config.excludeSelectors ?? []);
 
     this.rawMutationsTotal += rawCount;
     this.filteredMutationsTotal += filteredCount;

@@ -158,7 +158,15 @@ function renderEvents(): void {
       if (evt.attributeName) {
         const attrLine = document.createElement('div');
         attrLine.className = 'diff-line';
-        attrLine.innerHTML = `<span style="color:#94a3b8">attr:</span> <span style="color:#38bdf8">${evt.attributeName}</span>`;
+        const attrLabel = document.createElement('span');
+        attrLabel.style.color = '#94a3b8';
+        attrLabel.textContent = 'attr:';
+        const attrValue = document.createElement('span');
+        attrValue.style.color = '#38bdf8';
+        attrValue.textContent = evt.attributeName; // safe: textContent, not innerHTML
+        attrLine.appendChild(attrLabel);
+        attrLine.appendChild(document.createTextNode(' '));
+        attrLine.appendChild(attrValue);
         diffBox.appendChild(attrLine);
       }
 

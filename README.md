@@ -280,6 +280,121 @@ npm run dev
 
 ---
 
+## ⚙️ Advanced Configuration
+
+`DOMPulseEngine` accepts an optional config object. All fields are optional — defaults are shown below:
+
+```typescript
+const engine = new DOMPulseEngine({
+  debounceMs: 80,          // Trailing debounce window (ms) before batch is flushed
+  maxWaitMs: 200,          // Hard upper bound — forces flush even during continuous mutation storms
+  observeAttributes: true,
+  observeCharacterData: true,
+  observeChildList: true,
+  observeSubtree: true,
+  ignoreHiddenElements: true,
+
+  // NEW: Exclude specific subtrees from observation entirely.
+  // Use CSS selectors matching the root element of subtrees you want to ignore.
+  // Example: ignore a live-chat widget and a cookie banner:
+  excludeSelectors: ['#live-chat-widget', '.cookie-banner', '[data-analytics-root]'],
+});
+```
+
+### Excluding Subtrees
+
+Some pages contain high-frequency noise sources that aren't covered by the built-in 4-tier filter — for example, a live chat widget that pulses every second or a real-time analytics overlay. Use `excludeSelectors` to silently blacklist them:
+
+```typescript
+const engine = new DOMPulseEngine({
+  excludeSelectors: [
+    '#intercom-container',   // Intercom chat widget
+    '.crisp-client',         // Crisp chat
+    '[data-livechat]',       // Generic live chat marker
+    '.cookie-consent',       // Cookie banner
+  ],
+});
+```
+
+Any mutation originating from within a matched subtree is discarded before any other processing — zero computational cost downstream.
+
+---
+
+## ⚠️ Known Limitations
+
+Understanding these limitations is critical for building reliable AI agents on top of DOMPulse.
+
+### 1. Live Input Typing Is Invisible
+
+**This is the most important limitation to understand.**
+
+When a user or agent types into an `<input>` or `<textarea>`, the browser updates the element's `.value` **JavaScript property** — it does **not** mutate the `value` HTML **attribute**. Since `MutationObserver` only tracks DOM attribute/node changes (not property assignments), DOMPulse emits **zero events** for live typing.
+
+```javascript
+// This DOES trigger DOMPulse (programmatic attribute set):
+input.setAttribute('value', 'hello');  // ✅ FORM_CHANGED emitted
+
+// This does NOT trigger DOMPulse (user typing / JS property assignment):
+input.value = 'hello';  // ❌ Invisible to MutationObserver
+```
+
+**Workaround:** For agents that need to track live input fill state, listen to native DOM events alongside DOMPulse:
+
+```javascript
+document.addEventListener('input', (e) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    console.log('Input filled:', e.target.value);
+  }
+});
+```
+
+This applies equally to **React controlled inputs**, where React manages the `.value` property directly without touching the HTML attribute.
+
+---
+
+### 2. Shadow DOM Boundaries
+
+`MutationObserver` cannot cross Shadow DOM boundaries. Changes occurring inside a `<shadow-root>` (e.g. inside Web Components like `<sl-button>`, `<mwc-dialog>`, `<vaadin-*>`) are **invisible** to DOMPulse.
+
+**Workaround:** Not currently supported. Planned for V2 via a recursive Shadow DOM observer that attaches sub-observers to each shadow root.
+
+---
+
+### 3. Canvas and WebGL
+
+Canvas animations and WebGL renderings never produce DOM mutations — they write directly to a framebuffer. DOMPulse will not detect any visual change within a `<canvas>` element.
+
+**Workaround:** Use Pixel Delta Correlation (planned for V3) or fall back to screenshot comparison for canvas-heavy regions only.
+
+---
+
+### 4. `display: contents` Elements
+
+Elements styled with `display: contents` have no box model — `getBoundingClientRect()` returns `{x:0, y:0, width:0, height:0}`. DOMPulse will correctly detect the semantic change but will report the bounding box as zeroed-out with `visible: false`. The element IS visually represented by its children.
+
+**Workaround:** Agents receiving events with `bbox.width === 0` on `display: contents` elements should use the coordinates of the element's first child instead.
+
+---
+
+### 5. Playwright Headless Mode
+
+The Python/Playwright integration requires that the extension is loaded via `--load-extension`. This only works with **headless=False** or with the new Chrome headless mode that supports extensions:
+
+```python
+browser = p.chromium.launch_persistent_context(
+    user_data_dir="/tmp/agent-profile",
+    headless=False,            # ← Required. Old headless mode does not support extensions.
+    args=[
+        "--disable-extensions-except=./dist",
+        "--load-extension=./dist"
+    ]
+)
+```
+
+Running with `--disable-extensions` or old headless will silently prevent the content script from loading and DOMPulse will emit no events.
+
+---
+
 ## 📄 License
 
 MIT © [DOMPulse Contributors](https://github.com/mysterious03/DOMPULSE)

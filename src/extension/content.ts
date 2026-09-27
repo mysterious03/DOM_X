@@ -11,7 +11,6 @@ import { EventBatch, PipelineMetrics } from '../core/types';
 declare global {
   interface Window {
     __DOMPULSE__?: {
-      engine: DOMPulseEngine;
       getMetrics: () => PipelineMetrics;
       getRecentEvents: (limit?: number) => unknown[];
       pause: () => void;
@@ -31,9 +30,8 @@ const engine = new DOMPulseEngine({
   observeSubtree: true,
 });
 
-// Expose in-page programmatic API for browser agents
+// Expose in-page programmatic API for browser agents (safe method wrappers only — no raw engine reference)
 window.__DOMPULSE__ = {
-  engine,
   getMetrics: () => engine.getMetrics(),
   getRecentEvents: (limit?: number) => engine.getRecentEvents(limit),
   pause: () => engine.pause(),

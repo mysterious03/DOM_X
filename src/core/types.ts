@@ -87,4 +87,10 @@ export interface EngineConfig {
   observeChildList: boolean;
   observeSubtree: boolean;
   ignoreHiddenElements: boolean;
+  /**
+   * Optional CSS selectors for DOM subtrees to exclude from observation.
+   * Example: ['#live-chat-widget', '.cookie-banner', '[data-analytics]']
+   * Any node whose closest ancestor matches one of these selectors will be silently ignored.
+   */
+  excludeSelectors?: string[];
 }

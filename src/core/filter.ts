@@ -101,9 +101,10 @@ export function isIgnoredNode(node: Node): boolean {
     }
   }
 
-  // Check parent chain
+  // Check parent chain (capped at 25 levels to prevent O(n*depth) on deeply-nested DOMs)
   let parent = node.parentElement;
-  while (parent) {
+  let depth = 0;
+  while (parent && depth < 25) {
     if (IGNORED_TAGS.has(parent.tagName.toUpperCase())) {
       return true;
     }
@@ -114,8 +115,32 @@ export function isIgnoredNode(node: Node): boolean {
       return true;
     }
     parent = parent.parentElement;
+    depth++;
   }
 
+  return false;
+}
+
+/**
+ * Stage 0: Checks if a node is within a user-defined excluded subtree.
+ * Uses Element.closest() to walk up the DOM once per selector.
+ * Zero overhead when excludeSelectors is empty or undefined.
+ */
+export function isExcludedBySelector(node: Node, excludeSelectors: string[]): boolean {
+  if (!excludeSelectors || excludeSelectors.length === 0) return false;
+
+  const element = node instanceof Element ? node : node.parentElement;
+  if (!element) return false;
+
+  for (const selector of excludeSelectors) {
+    try {
+      if (element.closest(selector) !== null) {
+        return true;
+      }
+    } catch {
+      // Invalid CSS selector — skip silently to avoid crashing the pipeline
+    }
+  }
   return false;
 }
 

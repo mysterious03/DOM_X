@@ -61,7 +61,8 @@ export function getVisibilityState(target: Node, bbox: BoundingBox): VisibilityS
   // Check window availability (e.g. browser context vs fallback)
   const win = element.ownerDocument.defaultView || window;
   if (!win) {
-    return { visible: true, inViewport: true };
+    // Unknown context — default to not visible so agents don't attempt to click invisible elements
+    return { visible: false, inViewport: false };
   }
 
   let isStyleVisible = true;

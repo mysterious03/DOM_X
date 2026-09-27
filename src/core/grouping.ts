@@ -13,6 +13,7 @@ import {
 } from './types';
 import {
   isIgnoredNode,
+  isExcludedBySelector,
   filterAttributeMutation,
   filterCharacterDataMutation,
   filterChildListMutation,
@@ -28,10 +29,9 @@ import {
   describeElement,
 } from './geometry';
 
-let eventCounter = 0;
 function generateEventId(): string {
-  eventCounter += 1;
-  return `evt_${Date.now()}_${eventCounter}`;
+  // Use random base-36 suffix to prevent same-millisecond ID collisions across concurrent instances
+  return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export interface GroupingResult {
@@ -44,9 +44,12 @@ export interface GroupingResult {
 
 /**
  * Processes a collection of raw MutationRecords collected within the debounce window.
+ * @param rawMutations - Raw MutationRecords from the observer.
+ * @param excludeSelectors - Optional CSS selectors for subtrees to ignore (see EngineConfig.excludeSelectors).
  */
 export function processAndGroupMutations(
-  rawMutations: MutationRecord[]
+  rawMutations: MutationRecord[],
+  excludeSelectors: string[] = []
 ): GroupingResult {
   const startTime = performance.now();
   const rawCount = rawMutations.length;
@@ -75,6 +78,13 @@ export function processAndGroupMutations(
   // PHASE 1: CHEAP FILTER & BUFFERING (Reject early)
   for (const record of rawMutations) {
     try {
+      // Stage 0: User-defined subtree exclusions
+      if (isExcludedBySelector(record.target, excludeSelectors)) {
+        filteredCount++;
+        continue;
+      }
+
+      // Stage 1: Structural node filter
       if (isIgnoredNode(record.target)) {
         filteredCount++;
         continue;
@@ -298,7 +308,7 @@ export function processAndGroupMutations(
   }
 
   const processingTimeMs = Number((performance.now() - startTime).toFixed(2));
-  const batchId = `batch_${now}_${Math.floor(Math.random() * 1000)}`;
+  const batchId = `batch_${now}_${Math.random().toString(36).slice(2, 8)}`;
   const summary = events.length === 0
     ? 'No meaningful changes detected'
     : `${events.length} change(s): ${events.map((e) => e.type).join(', ')}`;
