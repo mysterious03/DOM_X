@@ -5,6 +5,7 @@
  */
 
 import readline from 'readline';
+import path from 'path';
 import { DOMPulseBridgeServer } from '../mcp/bridge-server';
 import { DOMPulseEvent } from '../core/types';
 import { askGemini } from './gemini-assistant';
@@ -323,7 +324,19 @@ ${BOLD}Available DOM_X Interactive Commands:${RESET}
         }
       }
     } catch (err: unknown) {
-      console.log(`${RED}✘ Error:${RESET} ${err instanceof Error ? err.message : String(err)}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('No browser tab connected')) {
+        console.log(`\n${RED}✘ No browser tab connected yet.${RESET}`);
+        console.log(`\n${YELLOW}${BOLD}👉 Quick 10-Second Setup to activate DOM_X in Chrome:${RESET}`);
+        console.log(`  1. In Chrome, open a new tab to:  ${CYAN}${BOLD}chrome://extensions${RESET}`);
+        console.log(`  2. Turn ${BOLD}ON [Developer mode]${RESET} (toggle switch in top-right corner)`);
+        console.log(`  3. Click ${BOLD}[Load unpacked]${RESET} (button in top-left corner)`);
+        console.log(`  4. Select the "dist" directory:`);
+        console.log(`     👉 ${GREEN}${BOLD}${path.resolve(rootDir, 'dist')}${RESET}`);
+        console.log(`  5. Switch to any website (e.g. https://google.com) and try ${BOLD}/scan${RESET} again!\n`);
+      } else {
+        console.log(`${RED}✘ Error:${RESET} ${msg}`);
+      }
     }
 
     rl.prompt();

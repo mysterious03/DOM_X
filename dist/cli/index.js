@@ -1203,7 +1203,22 @@ ${ORANGE}Goodbye from DOM_X!${RESET}
         }
       }
     } catch (err) {
-      console.log(`${RED}✘ Error:${RESET} ${err instanceof Error ? err.message : String(err)}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("No browser tab connected")) {
+        console.log(`
+${RED}✘ No browser tab connected yet.${RESET}`);
+        console.log(`
+${YELLOW}${BOLD}👉 Quick 10-Second Setup to activate DOM_X in Chrome:${RESET}`);
+        console.log(`  1. In Chrome, open a new tab to:  ${CYAN}${BOLD}chrome://extensions${RESET}`);
+        console.log(`  2. Turn ${BOLD}ON [Developer mode]${RESET} (toggle switch in top-right corner)`);
+        console.log(`  3. Click ${BOLD}[Load unpacked]${RESET} (button in top-left corner)`);
+        console.log(`  4. Select the "dist" directory:`);
+        console.log(`     👉 ${GREEN}${BOLD}${path.resolve(rootDir, "dist")}${RESET}`);
+        console.log(`  5. Switch to any website (e.g. https://google.com) and try ${BOLD}/scan${RESET} again!
+`);
+      } else {
+        console.log(`${RED}✘ Error:${RESET} ${msg}`);
+      }
     }
     rl.prompt();
   });
@@ -1288,6 +1303,21 @@ function installConfig(target) {
     }
   }
 }
+function copyToClipboard(text) {
+  try {
+    const platform = os.platform();
+    if (platform === "win32") {
+      const proc = spawn("clip");
+      proc.stdin.write(text);
+      proc.stdin.end();
+    } else if (platform === "darwin") {
+      const proc = spawn("pbcopy");
+      proc.stdin.write(text);
+      proc.stdin.end();
+    }
+  } catch {
+  }
+}
 function launchBrowser(url = "https://google.com") {
   const chromePath = findChromeExecutable();
   if (!chromePath) {
@@ -1297,16 +1327,9 @@ function launchBrowser(url = "https://google.com") {
     process.exit(1);
   }
   const distDir = path.resolve(ROOT_DIR, "dist");
-  const userDataDir = path.join(os.tmpdir(), "dom-x-chrome-session");
-  console.log(`[DOM_X] Launching Google Chrome with DOM_X extension loaded:`);
-  console.log(`        Extension: ${distDir}`);
-  console.log(`        Target URL: ${url}`);
+  copyToClipboard(distDir);
   const args = [
     `--load-extension=${distDir}`,
-    `--disable-extensions-except=${distDir}`,
-    `--user-data-dir=${userDataDir}`,
-    "--no-first-run",
-    "--no-default-browser-check",
     url
   ];
   const child = spawn(chromePath, args, {
@@ -1314,9 +1337,22 @@ function launchBrowser(url = "https://google.com") {
     stdio: "ignore"
   });
   child.unref();
-  console.log("[DOM_X] Chrome launched with DOM_X extension active!");
-  console.log('💡 Tip: Once the page loads, type "/scan" or ask Claude to inspect it.');
-  console.log("       (Extensions activate on real URLs like https://github.com, not on chrome:// pages).");
+  console.log(`
+======================================================================
+  ⚡ DOM_X CHROME EXTENSION SETUP (First-Time Only — Takes 10s) ⚡
+======================================================================
+ Opened Chrome at: ${url}
+
+ If this is your first time using DOM_X:
+ 1. In Chrome, open a new tab to:  chrome://extensions
+ 2. Turn ON [Developer mode] (toggle switch in the top-right corner)
+ 3. Click [Load unpacked] (button in the top-left corner)
+ 4. Select the "dist" folder (already copied to your clipboard!):
+    👉 ${distDir}
+
+ 5. Now switch back to any website (e.g. ${url}) and type /scan!
+======================================================================
+`);
 }
 async function runCLI(argv) {
   const argCommand = argv[2];
