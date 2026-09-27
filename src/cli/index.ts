@@ -141,13 +141,39 @@ function launchBrowser(url = 'https://google.com') {
   console.log('[DOM_X] Chrome launched successfully!');
 }
 
+import { DOMPulseBridgeServer } from '../mcp/bridge-server';
+import { startInteractiveCLI } from './interactive';
+
 /**
  * Main CLI router.
  */
 export async function runCLI(argv: string[]) {
-  const command = argv[2] || 'serve';
+  const argCommand = argv[2];
+
+  // If no command provided:
+  // If run in an interactive terminal (TTY), launch the Interactive REPL (like Ollama / Claude Code)
+  // If run non-interactively (piped / spawned by Claude or Cursor), run stdio MCP server
+  const command = argCommand || (process.stdin.isTTY ? 'interactive' : 'serve');
 
   switch (command) {
+    case 'interactive':
+    case 'repl':
+    case 'chat':
+    case '-i': {
+      const port = process.env.DOM_X_PORT ? parseInt(process.env.DOM_X_PORT, 10) : 8765;
+      const bridge = new DOMPulseBridgeServer({ port });
+      await bridge.start();
+
+      await startInteractiveCLI({
+        bridge,
+        launchBrowser,
+        installConfig,
+        findChrome: findChromeExecutable,
+        rootDir: ROOT_DIR,
+      });
+      break;
+    }
+
     case 'serve': {
       const port = process.env.DOM_X_PORT ? parseInt(process.env.DOM_X_PORT, 10) : 8765;
       const server = new DOMPulseMCPServer(port);
@@ -187,20 +213,22 @@ export async function runCLI(argv: string[]) {
 DOM_X CLI - Browser Perception & Change-Intelligence MCP Server
 
 Usage:
-  npx dom-x [command] [options]
+  domx [command] [options]
 
 Commands:
-  serve                 Run MCP server over stdio (default)
+  interactive, repl     Start interactive terminal REPL (default in TTY)
+  serve                 Run MCP server over stdio for Claude Desktop / Cursor
   launch [url]          Launch Chrome with DOM_X extension pre-loaded
   install [client]      Auto-configure AI client (claude | cursor | all)
   status                Display diagnostic info and paths
   help                  Show this help screen
 
 Examples:
-  npx dom-x install claude     # Installs DOM_X into Claude Desktop
-  npx dom-x install cursor     # Installs DOM_X into Cursor
-  npx dom-x launch             # Opens Chrome with DOM_X loaded
-  npx dom-x                    # Starts MCP server on stdio
+  domx                         # Starts interactive terminal session (Ollama / Claude style)
+  domx install claude          # Installs DOM_X into Claude Desktop
+  domx install cursor          # Installs DOM_X into Cursor
+  domx launch https://github.com # Opens Chrome with DOM_X loaded
+  domx serve                   # Starts MCP server on stdio
 `);
       break;
     }

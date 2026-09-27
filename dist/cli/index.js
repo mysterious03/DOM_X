@@ -9,9 +9,12 @@ import { fileURLToPath } from "url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ListToolsRequestSchema, CallToolRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { EventEmitter } from "events";
 import { WebSocketServer, WebSocket } from "ws";
-class DOMPulseBridgeServer {
+import readline from "readline";
+class DOMPulseBridgeServer extends EventEmitter {
   constructor(options = {}) {
+    super();
     __publicField(this, "wss", null);
     __publicField(this, "port");
     __publicField(this, "host");
@@ -43,6 +46,7 @@ class DOMPulseBridgeServer {
           };
           this.tabs.set(tabId, session);
           this.activeTabId = tabId;
+          this.emit("tab_connected", session);
           ws.on("message", (raw) => {
             try {
               const msg = JSON.parse(raw.toString());
@@ -57,6 +61,7 @@ class DOMPulseBridgeServer {
               const remaining = Array.from(this.tabs.keys());
               this.activeTabId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
             }
+            this.emit("tab_disconnected", tabId);
           });
           ws.on("error", (err) => {
             console.error(`[DOMPulse Bridge Server] WebSocket error on tab ${tabId}:`, err.message);
@@ -165,6 +170,7 @@ class DOMPulseBridgeServer {
         session.url = msg.url || session.url;
         session.title = msg.title || session.title;
         console.error(`[DOM_X MCP Bridge] Active tab ready: "${session.title}" (${session.url})`);
+        this.emit("tab_ready", session);
       }
     } else if (msg.type === "DOM_MUTATIONS" && Array.isArray(msg.events)) {
       for (const evt of msg.events) {
@@ -173,6 +179,7 @@ class DOMPulseBridgeServer {
           this.mutationBuffer.shift();
         }
         this.mutationWaiters = this.mutationWaiters.filter((waiter) => !waiter(evt));
+        this.emit("mutation", evt);
       }
     }
   }
@@ -701,6 +708,283 @@ ${formatted}`
     });
   }
 }
+const BOLD = "\x1B[1m";
+const DIM = "\x1B[2m";
+const CYAN = "\x1B[36m";
+const GREEN = "\x1B[32m";
+const YELLOW = "\x1B[33m";
+const ORANGE = "\x1B[38;5;208m";
+const RED = "\x1B[31m";
+const MAGENTA = "\x1B[35m";
+const RESET = "\x1B[0m";
+async function startInteractiveCLI(options) {
+  var _a;
+  const { bridge, launchBrowser: launchBrowser2, installConfig: installConfig2, findChrome, rootDir } = options;
+  console.clear();
+  console.log(`
+${ORANGE}${BOLD}  ██████╗   ██████╗  ███╗   ███╗     ██╗  ██╗
+  ██╔══██╗ ██╔═══██╗ ████╗ ████║     ╚██╗██╔╝
+  ██║  ██║ ██║   ██║ ██╔████╔██║      ╚███╔╝ 
+  ██║  ██║ ██║   ██║ ██║╚██╔╝██║      ██╔██╗ 
+  ██████╔╝ ╚██████╔╝ ██║ ╚═╝ ██║     ██╔╝ ██╗
+  ╚═════╝   ╚═════╝  ╚═╝     ╚═╝     ╚═╝  ╚═╝${RESET}
+
+  ${BOLD}✱ Welcome to DOM_X Interactive Terminal ✱${RESET}
+  ${DIM}Real-Time Browser Perception & Action Engine for AI Agents${RESET}
+`);
+  const status = bridge.getStatus();
+  const chromePath = findChrome();
+  console.log(`  ${CYAN}●${RESET} Bridge: ${BOLD}ws://127.0.0.1:${status.port}${RESET}`);
+  console.log(`  ${chromePath ? GREEN + "●" : RED + "○"}${RESET} Chrome: ${chromePath ? BOLD + "Detected" + RESET : RED + "Not Found (Run /launch)" + RESET}`);
+  console.log(`  ${status.connected ? GREEN + "● Active Tab: " + ((_a = status.activeTab) == null ? void 0 : _a.title) : YELLOW + "○ No Browser Tab Connected (Run /launch to start Chrome)"}${RESET}`);
+  console.log(`  ${DIM}Type ${BOLD}/help${RESET}${DIM} for command list, or type commands directly.${RESET}
+`);
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: `${ORANGE}${BOLD}dom_x${RESET} > `,
+    completer: (line) => {
+      const completions = [
+        "/launch",
+        "/scan",
+        "/dom",
+        "/click",
+        "/type",
+        "/hover",
+        "/scroll",
+        "/goto",
+        "/hud",
+        "/mutations",
+        "/status",
+        "/install",
+        "/eval",
+        "/help",
+        "/clear",
+        "/exit"
+      ];
+      const hits = completions.filter((c) => c.startsWith(line.trim()));
+      return [hits.length ? hits : completions, line];
+    }
+  });
+  bridge.on("mutation", (evt) => {
+    var _a2;
+    readline.clearLine(process.stdout, 0);
+    readline.cursorTo(process.stdout, 0);
+    const scoreStr = evt.importanceScore ? `[${evt.importanceScore}/5]` : "";
+    console.log(
+      `${MAGENTA}⚡ [15ms DOM Mutation]${RESET} ${DIM}${scoreStr}${RESET} ${BOLD}${evt.type}${RESET}: ${evt.target}${((_a2 = evt.details) == null ? void 0 : _a2.text) ? ` → "${CYAN}${evt.details.text}${RESET}"` : ""}`
+    );
+    rl.prompt(true);
+  });
+  bridge.on("tab_ready", (tab) => {
+    readline.clearLine(process.stdout, 0);
+    readline.cursorTo(process.stdout, 0);
+    console.log(`${GREEN}✔ [DOM_X Active Tab]${RESET} "${BOLD}${tab.title}${RESET}" (${CYAN}${tab.url}${RESET})`);
+    rl.prompt(true);
+  });
+  bridge.on("tab_disconnected", () => {
+    readline.clearLine(process.stdout, 0);
+    readline.cursorTo(process.stdout, 0);
+    console.log(`${YELLOW}⚠ [DOM_X] Browser tab disconnected.${RESET}`);
+    rl.prompt(true);
+  });
+  rl.prompt();
+  rl.on("line", async (line) => {
+    var _a2;
+    const raw = line.trim();
+    if (!raw) {
+      rl.prompt();
+      return;
+    }
+    const parts = raw.split(/\s+/);
+    let cmd = parts[0].toLowerCase();
+    if (cmd.startsWith("/")) {
+      cmd = cmd.substring(1);
+    }
+    const args = parts.slice(1);
+    try {
+      switch (cmd) {
+        case "help":
+        case "?": {
+          console.log(`
+${BOLD}Available DOM_X Interactive Commands:${RESET}
+
+  ${CYAN}/launch [url]${RESET}          Launch Chrome with DOM_X pre-loaded (e.g. /launch https://github.com)
+  ${CYAN}/scan${RESET} or ${CYAN}/dom${RESET}          Extract actionable elements & IDs (@e1, @e2...) from active tab
+  ${CYAN}/click <@id|selector>${RESET}   Click an element (e.g. /click @e1 or /click #submit)
+  ${CYAN}/type <@id> <text>${RESET}      Type text into an input field (e.g. /type @e2 mypassword)
+  ${CYAN}/hover <@id>${RESET}             Hover over an element (e.g. /hover @e4)
+  ${CYAN}/scroll [dir]${RESET}            Scroll active page (up | down | top | bottom)
+  ${CYAN}/goto <url>${RESET}              Navigate active tab to a URL (e.g. /goto https://google.com)
+  ${CYAN}/hud${RESET}                     Toggle the in-browser visual bounding box HUD in Chrome
+  ${CYAN}/mutations${RESET}               List recent 15ms change intelligence events
+  ${CYAN}/eval <expr>${RESET}             Execute JavaScript in the active browser tab
+  ${CYAN}/install [client]${RESET}        Auto-configure AI client (claude | cursor | all)
+  ${CYAN}/status${RESET}                  Display connection diagnostics & Chrome path
+  ${CYAN}/clear${RESET}                   Clear terminal screen
+  ${CYAN}/exit${RESET} or ${CYAN}quit${RESET}             Exit interactive session
+`);
+          break;
+        }
+        case "launch":
+        case "open": {
+          const url = args[0] || "https://github.com";
+          console.log(`${CYAN}⚡ Launching Chrome with DOM_X at: ${url}...${RESET}`);
+          launchBrowser2(url);
+          break;
+        }
+        case "scan":
+        case "dom":
+        case "state": {
+          console.log(`${CYAN}🔍 Scanning active tab DOM elements...${RESET}`);
+          const res = await bridge.sendCommand("GET_DOM", { preset: "interactive", visibleOnly: true });
+          if (!res || !Array.isArray(res.elements) || res.elements.length === 0) {
+            console.log(`${YELLOW}No actionable elements found on current page.${RESET}`);
+          } else {
+            console.log(
+              `
+${BOLD}[DOM_X Perception | Tab: "${res.title || "Unknown"}" | Actionable Elements: ${res.elements.length}]${RESET}`
+            );
+            console.log(`${DIM}--------------------------------------------------------------------------------${RESET}`);
+            for (const el of res.elements.slice(0, 30)) {
+              const tag = el.actionId ? `${ORANGE}${BOLD}${el.actionId}${RESET}` : "@??";
+              const role = `${CYAN}[${(el.role || el.tagName || "ELEMENT").toUpperCase()}]${RESET}`;
+              const text = el.text ? `"${el.text.substring(0, 40)}"` : el.placeholder ? `"${el.placeholder}"` : "";
+              const bounds = el.boundingBox ? `${DIM}(${el.boundingBox.width}x${el.boundingBox.height} at: ${el.boundingBox.x},${el.boundingBox.y})${RESET}` : "";
+              console.log(`  ${tag.padEnd(12)} ${role.padEnd(20)} ${text.padEnd(45)} ${bounds}`);
+            }
+            if (res.elements.length > 30) {
+              console.log(`${DIM}  ... and ${res.elements.length - 30} more elements.${RESET}`);
+            }
+            console.log(`${DIM}--------------------------------------------------------------------------------${RESET}
+`);
+          }
+          break;
+        }
+        case "click": {
+          const target = args[0];
+          if (!target) {
+            console.log(`${RED}Usage: /click <@e1 | selector>${RESET}`);
+            break;
+          }
+          console.log(`${CYAN}Clicking ${target}...${RESET}`);
+          const res = await bridge.sendCommand("CLICK", { target });
+          console.log(`${GREEN}✔ ${res.message || "Clicked successfully!"}${RESET}`);
+          break;
+        }
+        case "type": {
+          const target = args[0];
+          const text = args.slice(1).join(" ");
+          if (!target || !text) {
+            console.log(`${RED}Usage: /type <@e1 | selector> <text to type>${RESET}`);
+            break;
+          }
+          console.log(`${CYAN}Typing into ${target}...${RESET}`);
+          const res = await bridge.sendCommand("TYPE", { target, text });
+          console.log(`${GREEN}✔ ${res.message || "Text entered successfully!"}${RESET}`);
+          break;
+        }
+        case "hover": {
+          const target = args[0];
+          if (!target) {
+            console.log(`${RED}Usage: /hover <@e1 | selector>${RESET}`);
+            break;
+          }
+          const res = await bridge.sendCommand("HOVER", { target });
+          console.log(`${GREEN}✔ ${res.message || "Hovered!"}${RESET}`);
+          break;
+        }
+        case "scroll": {
+          const direction = args[0] || "down";
+          const res = await bridge.sendCommand("SCROLL", { direction, amount: 400 });
+          console.log(`${GREEN}✔ ${res.message || `Scrolled ${direction}`}${RESET}`);
+          break;
+        }
+        case "goto": {
+          const url = args[0];
+          if (!url) {
+            console.log(`${RED}Usage: /goto <url>${RESET}`);
+            break;
+          }
+          const res = await bridge.sendCommand("NAVIGATE", { url });
+          console.log(`${GREEN}✔ Navigating to: ${url}${RESET}`);
+          break;
+        }
+        case "hud": {
+          const res = await bridge.sendCommand("TOGGLE_HUD", {});
+          console.log(`${GREEN}✔ In-browser HUD ${res.enabled ? "Enabled" : "Disabled"}${RESET}`);
+          break;
+        }
+        case "mutations":
+        case "changes": {
+          const mutations = bridge.getMutations(15);
+          if (mutations.length === 0) {
+            console.log(`${DIM}No recent DOM mutations recorded.${RESET}`);
+          } else {
+            console.log(`
+${BOLD}Recent 15ms DOM Mutations:${RESET}`);
+            for (const m of mutations) {
+              console.log(`  ${MAGENTA}•${RESET} ${BOLD}${m.type}${RESET} on ${CYAN}${m.target}${RESET} ${((_a2 = m.details) == null ? void 0 : _a2.text) ? `("${m.details.text}")` : ""}`);
+            }
+            console.log("");
+          }
+          break;
+        }
+        case "eval": {
+          const expr = args.join(" ");
+          if (!expr) {
+            console.log(`${RED}Usage: /eval <javascript expression>${RESET}`);
+            break;
+          }
+          const res = await bridge.sendCommand("EVAL", { expression: expr });
+          console.log(`${GREEN}=>${RESET}`, res.result);
+          break;
+        }
+        case "install": {
+          const client = args[0] || "all";
+          installConfig2(client);
+          break;
+        }
+        case "status": {
+          const s = bridge.getStatus();
+          console.log(`
+${BOLD}=== DOM_X System Status ===${RESET}`);
+          console.log(`Bridge Port:  ${s.port}`);
+          console.log(`Connected:    ${s.connected ? GREEN + "Yes" + RESET : RED + "No" + RESET}`);
+          console.log(`Active Tab:   ${s.activeTab ? `"${s.activeTab.title}" (${s.activeTab.url})` : "None"}`);
+          console.log(`Chrome Exec:  ${findChrome() || "Not Found"}`);
+          console.log(`Root Path:    ${rootDir}
+`);
+          break;
+        }
+        case "clear": {
+          console.clear();
+          break;
+        }
+        case "exit":
+        case "quit": {
+          console.log(`
+${ORANGE}Goodbye from DOM_X!${RESET}
+`);
+          process.exit(0);
+          break;
+        }
+        default: {
+          console.log(`${RED}Unknown command: "${raw}". Type /help to see all interactive commands.${RESET}`);
+          break;
+        }
+      }
+    } catch (err) {
+      console.log(`${RED}✘ Error:${RESET} ${err instanceof Error ? err.message : String(err)}`);
+    }
+    rl.prompt();
+  });
+  rl.on("close", () => {
+    console.log(`
+${ORANGE}DOM_X session ended.${RESET}`);
+    process.exit(0);
+  });
+}
 const __filename$1 = fileURLToPath(import.meta.url);
 const __dirname$1 = path.dirname(__filename$1);
 const ROOT_DIR = path.resolve(__dirname$1, "..", "..");
@@ -801,8 +1085,25 @@ function launchBrowser(url = "https://google.com") {
   console.log("[DOM_X] Chrome launched successfully!");
 }
 async function runCLI(argv) {
-  const command = argv[2] || "serve";
+  const argCommand = argv[2];
+  const command = argCommand || (process.stdin.isTTY ? "interactive" : "serve");
   switch (command) {
+    case "interactive":
+    case "repl":
+    case "chat":
+    case "-i": {
+      const port = process.env.DOM_X_PORT ? parseInt(process.env.DOM_X_PORT, 10) : 8765;
+      const bridge = new DOMPulseBridgeServer({ port });
+      await bridge.start();
+      await startInteractiveCLI({
+        bridge,
+        launchBrowser,
+        installConfig,
+        findChrome: findChromeExecutable,
+        rootDir: ROOT_DIR
+      });
+      break;
+    }
     case "serve": {
       const port = process.env.DOM_X_PORT ? parseInt(process.env.DOM_X_PORT, 10) : 8765;
       const server = new DOMPulseMCPServer(port);
@@ -838,20 +1139,22 @@ async function runCLI(argv) {
 DOM_X CLI - Browser Perception & Change-Intelligence MCP Server
 
 Usage:
-  npx dom-x [command] [options]
+  domx [command] [options]
 
 Commands:
-  serve                 Run MCP server over stdio (default)
+  interactive, repl     Start interactive terminal REPL (default in TTY)
+  serve                 Run MCP server over stdio for Claude Desktop / Cursor
   launch [url]          Launch Chrome with DOM_X extension pre-loaded
   install [client]      Auto-configure AI client (claude | cursor | all)
   status                Display diagnostic info and paths
   help                  Show this help screen
 
 Examples:
-  npx dom-x install claude     # Installs DOM_X into Claude Desktop
-  npx dom-x install cursor     # Installs DOM_X into Cursor
-  npx dom-x launch             # Opens Chrome with DOM_X loaded
-  npx dom-x                    # Starts MCP server on stdio
+  domx                         # Starts interactive terminal session (Ollama / Claude style)
+  domx install claude          # Installs DOM_X into Claude Desktop
+  domx install cursor          # Installs DOM_X into Cursor
+  domx launch https://github.com # Opens Chrome with DOM_X loaded
+  domx serve                   # Starts MCP server on stdio
 `);
       break;
     }

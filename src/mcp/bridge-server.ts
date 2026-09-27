@@ -3,6 +3,7 @@
  * Runs a local WebSocket server connecting AI agents (via MCP) to browser tabs (Chrome Extension or Testbench).
  */
 
+import { EventEmitter } from 'events';
 import { WebSocketServer, WebSocket } from 'ws';
 import { DOMPulseEvent } from '../core/types';
 
@@ -20,7 +21,7 @@ export interface BridgeServerOptions {
   host?: string;
 }
 
-export class DOMPulseBridgeServer {
+export class DOMPulseBridgeServer extends EventEmitter {
   private wss: WebSocketServer | null = null;
   private port: number;
   private host: string;
@@ -32,6 +33,7 @@ export class DOMPulseBridgeServer {
   private maxBufferSize: number = 200;
 
   constructor(options: BridgeServerOptions = {}) {
+    super();
     this.port = options.port || Number(process.env.DOM_X_PORT || process.env.DOMPULSE_PORT) || 8765;
     this.host = options.host || '127.0.0.1';
   }
@@ -57,6 +59,7 @@ export class DOMPulseBridgeServer {
 
           this.tabs.set(tabId, session);
           this.activeTabId = tabId;
+          this.emit('tab_connected', session);
 
           ws.on('message', (raw) => {
             try {
@@ -73,6 +76,7 @@ export class DOMPulseBridgeServer {
               const remaining = Array.from(this.tabs.keys());
               this.activeTabId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
             }
+            this.emit('tab_disconnected', tabId);
           });
 
           ws.on('error', (err) => {
@@ -201,6 +205,7 @@ export class DOMPulseBridgeServer {
         session.url = msg.url || session.url;
         session.title = msg.title || session.title;
         console.error(`[DOM_X MCP Bridge] Active tab ready: "${session.title}" (${session.url})`);
+        this.emit('tab_ready', session);
       }
     } else if (msg.type === 'DOM_MUTATIONS' && Array.isArray(msg.events)) {
       for (const evt of msg.events) {
@@ -211,6 +216,7 @@ export class DOMPulseBridgeServer {
 
         // Notify mutation waiters
         this.mutationWaiters = this.mutationWaiters.filter((waiter) => !waiter(evt));
+        this.emit('mutation', evt);
       }
     }
   }

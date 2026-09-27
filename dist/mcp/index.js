@@ -5,9 +5,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ListToolsRequestSchema, CallToolRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { EventEmitter } from "events";
 import { WebSocketServer, WebSocket } from "ws";
-class DOMPulseBridgeServer {
+class DOMPulseBridgeServer extends EventEmitter {
   constructor(options = {}) {
+    super();
     __publicField(this, "wss", null);
     __publicField(this, "port");
     __publicField(this, "host");
@@ -39,6 +41,7 @@ class DOMPulseBridgeServer {
           };
           this.tabs.set(tabId, session);
           this.activeTabId = tabId;
+          this.emit("tab_connected", session);
           ws.on("message", (raw) => {
             try {
               const msg = JSON.parse(raw.toString());
@@ -53,6 +56,7 @@ class DOMPulseBridgeServer {
               const remaining = Array.from(this.tabs.keys());
               this.activeTabId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
             }
+            this.emit("tab_disconnected", tabId);
           });
           ws.on("error", (err) => {
             console.error(`[DOMPulse Bridge Server] WebSocket error on tab ${tabId}:`, err.message);
@@ -161,6 +165,7 @@ class DOMPulseBridgeServer {
         session.url = msg.url || session.url;
         session.title = msg.title || session.title;
         console.error(`[DOM_X MCP Bridge] Active tab ready: "${session.title}" (${session.url})`);
+        this.emit("tab_ready", session);
       }
     } else if (msg.type === "DOM_MUTATIONS" && Array.isArray(msg.events)) {
       for (const evt of msg.events) {
@@ -169,6 +174,7 @@ class DOMPulseBridgeServer {
           this.mutationBuffer.shift();
         }
         this.mutationWaiters = this.mutationWaiters.filter((waiter) => !waiter(evt));
+        this.emit("mutation", evt);
       }
     }
   }

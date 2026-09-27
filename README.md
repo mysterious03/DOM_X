@@ -1,6 +1,6 @@
 <div align="center">
 
-![DOM_X: Interactive CLI & Live Browser HUD](assets/dom-x-interactive-cli.png)
+![DOM_X: Welcome to DOM_X](assets/dom-x-banner.png)
 
 # ⚡ DOM_X
 ### *Real-Time Browser Perception & Action MCP Server for AI Agents*
@@ -152,16 +152,72 @@ Webpage DOM ──► MutationObserver ──► 96% Noise Filter ──► Boun
 
 ---
 
-## 🚀 One-Command CLI Suite
+## 🚀 Interactive CLI & Terminal REPL (Ollama & Claude Code Style)
 
-### Available CLI Commands
+Run `domx` directly in your terminal to start a rich, interactive REPL console with real-time browser control, live element perception, and 15ms DOM mutation streaming:
+
+```bash
+domx
+```
+
+```text
+  ██████╗   ██████╗  ███╗   ███╗     ██╗  ██╗
+  ██╔══██╗ ██╔═══██╗ ████╗ ████║     ╚██╗██╔╝
+  ██║  ██║ ██║   ██║ ██╔████╔██║      ╚███╔╝ 
+  ██║  ██║ ██║   ██║ ██║╚██╔╝██║      ██╔██╗ 
+  ██████╔╝ ╚██████╔╝ ██║ ╚═╝ ██║     ██╔╝ ██╗
+  ╚═════╝   ╚═════╝  ╚═╝     ╚═╝     ╚═╝  ╚═╝
+
+  ✱ Welcome to DOM_X Interactive Terminal ✱
+  Real-Time Browser Perception & Action Engine for AI Agents
+
+  ● Bridge: ws://127.0.0.1:8765
+  ● Chrome: Detected
+  ● Active Tab: "GitHub • Dashboard" (https://github.com)
+  Type /help for command list, or type commands directly.
+
+dom_x > /scan
+[DOM_X Perception | Tab: "GitHub • Dashboard" | Actionable Elements: 14]
+  @e1      [INPUT]    "Search or jump to..."    (320x34 at: 120,40)
+  @e2      [BUTTON]   "Pull requests"           (110x28 at: 450,42)
+  @e3      [BUTTON]   "Issues"                  (90x28  at: 570,42)
+
+dom_x > /click @e3
+✔ Clicked successfully!
+
+⚡ [15ms DOM Mutation] [5/5] CHILD_LIST: DIV#issues-container → "34 Open Issues"
+```
+
+### REPL Commands
+
+| Interactive Command | Description |
+| :--- | :--- |
+| `/launch [url]` | Launches Chrome with DOM_X extension pre-loaded |
+| `/scan` or `/dom` | Live scans the active Chrome tab and lists interactive elements (`@e1`, `@e2`...) |
+| `/click <@id>` | Clicks an element by ID (`/click @e1`) or CSS selector |
+| `/type <@id> <text>` | Enters text into an input field (`/type @e2 mypassword`) |
+| `/hover <@id>` | Hovers mouse over an element |
+| `/scroll [dir]` | Scrolls active page (`up`, `down`, `top`, `bottom`) |
+| `/goto <url>` | Navigates the browser to any URL |
+| `/hud` | Toggles the in-browser glowing bounding box HUD |
+| `/mutations` | Displays recent 15ms change intelligence event logs |
+| `/eval <expr>` | Evaluates JavaScript in the browser tab and returns the result |
+| `/install [client]` | Auto-configures AI client (`claude`, `cursor`, `all`) |
+| `/status` | Displays system status and Chrome executable path |
+| `/help` | Shows the cheat-sheet of all interactive commands |
+| `/exit` | Exits the interactive terminal |
+
+---
+
+### Non-Interactive CLI Commands
 
 | Command | Description | Example |
 | :--- | :--- | :--- |
+| `domx` | Starts interactive terminal REPL (like Ollama / Claude Code) | `domx` |
 | `domx install <client>` | Auto-configures AI client (`claude`, `cursor`, or `all`) | `domx install claude` |
 | `domx launch [url]` | Launches Chrome with DOM_X pre-loaded | `domx launch https://github.com` |
 | `domx status` | Runs diagnostic check on Node, Chrome, and bundle files | `domx status` |
-| `domx serve` | Starts the MCP server on stdio (default) | `domx serve` |
+| `domx serve` | Starts the MCP server on stdio for Claude Desktop / Cursor | `domx serve` |
 | `domx help` | Displays the help menu | `domx help` |
 
 ---
