@@ -1296,12 +1296,16 @@ function launchBrowser(url = "https://google.com") {
     process.exit(1);
   }
   const distDir = path.resolve(ROOT_DIR, "dist");
+  const userDataDir = path.join(os.tmpdir(), "dom-x-chrome-session");
   console.log(`[DOM_X] Launching Google Chrome with DOM_X extension loaded:`);
   console.log(`        Extension: ${distDir}`);
   console.log(`        Target URL: ${url}`);
   const args = [
     `--load-extension=${distDir}`,
     `--disable-extensions-except=${distDir}`,
+    `--user-data-dir=${userDataDir}`,
+    "--no-first-run",
+    "--no-default-browser-check",
     url
   ];
   const child = spawn(chromePath, args, {
@@ -1309,7 +1313,9 @@ function launchBrowser(url = "https://google.com") {
     stdio: "ignore"
   });
   child.unref();
-  console.log("[DOM_X] Chrome launched successfully!");
+  console.log("[DOM_X] Chrome launched with DOM_X extension active!");
+  console.log('💡 Tip: Once the page loads, type "/scan" or ask Claude to inspect it.');
+  console.log("       (Extensions activate on real URLs like https://github.com, not on chrome:// pages).");
 }
 async function runCLI(argv) {
   const argCommand = argv[2];

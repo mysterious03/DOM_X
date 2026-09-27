@@ -122,6 +122,8 @@ function launchBrowser(url = 'https://google.com') {
   }
 
   const distDir = path.resolve(ROOT_DIR, 'dist');
+  const userDataDir = path.join(os.tmpdir(), 'dom-x-chrome-session');
+
   console.log(`[DOM_X] Launching Google Chrome with DOM_X extension loaded:`);
   console.log(`        Extension: ${distDir}`);
   console.log(`        Target URL: ${url}`);
@@ -129,6 +131,9 @@ function launchBrowser(url = 'https://google.com') {
   const args = [
     `--load-extension=${distDir}`,
     `--disable-extensions-except=${distDir}`,
+    `--user-data-dir=${userDataDir}`,
+    '--no-first-run',
+    '--no-default-browser-check',
     url,
   ];
 
@@ -138,7 +143,9 @@ function launchBrowser(url = 'https://google.com') {
   });
   child.unref();
 
-  console.log('[DOM_X] Chrome launched successfully!');
+  console.log('[DOM_X] Chrome launched with DOM_X extension active!');
+  console.log('💡 Tip: Once the page loads, type "/scan" or ask Claude to inspect it.');
+  console.log('       (Extensions activate on real URLs like https://github.com, not on chrome:// pages).');
 }
 
 import { DOMPulseBridgeServer } from '../mcp/bridge-server';

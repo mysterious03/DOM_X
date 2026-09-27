@@ -77,12 +77,26 @@ DOM_X provides a 1-command installer that automatically detects your client's co
 
 ---
 
-### Step 3: Launch Chrome with DOM_X
-Start Chrome with the DOM_X extension pre-loaded with one command:
+### Step 3: Launch Chrome with the DOM_X Plugin (Extension)
+
+#### Option A: Automatic 1-Command Launcher (Easiest)
 ```bash
 domx launch https://github.com
 ```
-Chrome will open with DOM_X active, connected directly to your local MCP bridge (`ws://127.0.0.1:8765`).
+*This launches Chrome with an isolated profile and DOM_X pre-loaded, connecting directly to the MCP bridge (`ws://127.0.0.1:8765`).*
+
+#### Option B: Manual Installation in Your Regular Chrome Browser
+1. In Chrome, navigate to `chrome://extensions`.
+2. Toggle **Developer mode** to **ON** in the top-right corner.
+3. Click **Load unpacked** in the top-left corner.
+4. Select the `dist/` directory from this project folder (`<PATH_TO_DOM_X>/dist`).
+5. Open any real website (e.g. `https://github.com` or `https://google.com`).
+6. DOM_X is now active and connected!
+
+> [!WARNING]
+> **Got "No browser tab connected to DOM_X"?**
+> Chrome security prevents extensions from running on internal pages (`chrome://`, `chrome-extension://`, or blank new tabs).
+> **Fix:** Simply open or switch to any real website (e.g., `https://github.com`, `https://google.com`, `http://localhost:3000`), and DOM_X will instantly detect the tab!
 
 ---
 
@@ -461,13 +475,67 @@ Or paste into `.cursor/mcp.json`:
 
 ---
 
+## 💻 Programmatic API Guide (Connecting with Python & TypeScript)
+
+If you are developing custom agents with LangChain, LlamaIndex, OpenAI Swarm, or raw LLM API calls, connect to DOM_X via standard MCP SDKs:
+
+### Python Agent (`mcp` SDK)
+```python
+import asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def main():
+    # 1. Connect to DOM_X MCP Server
+    server_params = StdioServerParameters(
+        command="node",
+        args=["<PATH_TO_DOM_X>/dist/mcp/index.js"]
+    )
+
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            # 2. Inspect active browser tab in 12ms
+            dom = await session.call_tool("get_page_dom", arguments={"preset": "interactive"})
+            print(dom.content[0].text)
+
+            # 3. Click button by @e ID
+            await session.call_tool("click_element", arguments={"target": "@e1"})
+
+asyncio.run(main())
+```
+
+### TypeScript / Node.js Agent (`@modelcontextprotocol/sdk`)
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "node",
+  args: ["<PATH_TO_DOM_X>/dist/mcp/index.js"],
+});
+
+const client = new Client({ name: "my-browser-agent", version: "1.0.0" }, { capabilities: {} });
+await client.connect(transport);
+
+// Fetch live DOM elements
+const state = await client.callTool({
+  name: "get_page_dom",
+  arguments: { preset: "interactive" },
+});
+console.log(state.content[0].text);
+```
+
+---
+
 ## 🧪 Testing
 
 Run the automated test suite:
 ```bash
 npm test
 ```
-All **47 unit and integration tests** pass locally with 100% pass rate across all 9 test suites.
+All **49 unit and integration tests** pass locally with 100% pass rate across all 10 test suites.
 
 ---
 

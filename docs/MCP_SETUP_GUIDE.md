@@ -30,23 +30,103 @@ DOM_X provides an official **Model Context Protocol (MCP)** server. This allows 
 
 ---
 
-## One-Command CLI Installation
+### 1. How to Add the Chrome Extension (Plugin)
 
-### Auto-Install into AI Clients
+The DOM_X Chrome Extension is the bridge that extracts 15ms DOM mutations and renders the visual HUD on web pages.
+
+#### Option A: 1-Command Auto-Launch (Recommended)
+```bash
+domx launch https://github.com
+```
+*This automatically starts Chrome with an isolated session and the DOM_X extension pre-loaded.*
+
+#### Option B: Manual Installation into your Regular Chrome Browser
+1. Open Google Chrome.
+2. In the URL bar, go to: `chrome://extensions`
+3. In the top-right corner, switch the **Developer mode** toggle to **ON**.
+4. In the top-left corner, click the **Load unpacked** button.
+5. In the file picker, select the `dist/` directory located inside your DOM_X folder:
+   ```text
+   <PATH_TO_DOM_X>/dist
+   ```
+6. Open any real webpage (e.g. `https://github.com` or `https://google.com`).
+7. You will see the **DOM_X** icon in your Chrome toolbar, and it will immediately connect to your local MCP server on `ws://127.0.0.1:8765`!
+
+> [!WARNING]
+> **Why do I see "No browser tab connected"?**
+> Chrome security policies strictly block extensions from running on internal browser pages:
+> - ❌ `chrome://extensions`, `chrome://newtab`, or blank tabs
+> - ❌ Chrome Web Store
+> - ✅ Real websites: `https://github.com`, `https://google.com`, `http://localhost:3000`
+> 
+> Simply navigate your tab to any real website and DOM_X connects instantly!
+
+---
+
+### 2. Auto-Install into AI Clients
 ```bash
 # Auto-detects and adds DOM_X to Claude Desktop:
-npx dom-x install claude
+domx install claude
 
 # Auto-detects and adds DOM_X to Cursor:
-npx dom-x install cursor
+domx install cursor
 
 # Configure both:
-npx dom-x install all
+domx install all
 ```
 
-### Auto-Launch Chrome with DOM_X
-```bash
-npx dom-x launch https://github.com
+---
+
+### 3. Connecting via API in Code (Python & TypeScript)
+
+If you are building custom AI agents with LangChain, LlamaIndex, or raw LLM APIs, you can connect directly to DOM_X:
+
+#### In Python (using official `mcp` SDK)
+```python
+import asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def main():
+    # 1. Configure DOM_X MCP Server
+    server_params = StdioServerParameters(
+        command="node",
+        args=["<PATH_TO_DOM_X>/dist/mcp/index.js"]
+    )
+
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            # 2. Inspect active browser tab in 12ms!
+            dom = await session.call_tool("get_page_dom", arguments={"preset": "interactive"})
+            print(dom.content[0].text)
+
+            # 3. Click any element
+            await session.call_tool("click_element", arguments={"target": "@e1"})
+
+asyncio.run(main())
+```
+
+#### In TypeScript / Node.js (using `@modelcontextprotocol/sdk`)
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "node",
+  args: ["<PATH_TO_DOM_X>/dist/mcp/index.js"],
+});
+
+const client = new Client({ name: "my-browser-agent", version: "1.0.0" }, { capabilities: {} });
+await client.connect(transport);
+
+// Call DOM_X Perception
+const result = await client.callTool({
+  name: "get_page_dom",
+  arguments: { preset: "interactive" },
+});
+console.log(result.content[0].text);
 ```
 
 ### Manual Configuration
