@@ -10,7 +10,7 @@
                                                 ╚═════╝   ╚═════╝  ╚═╝     ╚═╝     ╚═╝  ╚═╝
                                               
 
-# ⚡ DOM_X
+
 ### *Real-Time Browser Perception & Action MCP Server for AI Agents*
 
 [![MCP Ready](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-38bdf8?style=for-the-badge&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
