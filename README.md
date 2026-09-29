@@ -1,6 +1,5 @@
 <div align="center">
 
-![DOM_X: Welcome to DOM_X](assets/dom-x-banner.png)
 
 ```text
   ██████╗   ██████╗  ███╗   ███╗     ██╗  ██╗
