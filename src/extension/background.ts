@@ -108,14 +108,32 @@ async function ensureContentScript(tabId: number, url?: string): Promise<boolean
 }
 
 /**
+ * Resolves the currently active tab reliably across windows even when
+ * Chrome is not the foreground OS window (e.g. user is in terminal).
+ */
+async function getBestActiveTab(): Promise<chrome.tabs.Tab | null> {
+  try {
+    let tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tabs || tabs.length === 0) {
+      tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    }
+    if (!tabs || tabs.length === 0) {
+      tabs = await chrome.tabs.query({ active: true });
+    }
+    return tabs && tabs.length > 0 ? tabs[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Informs the MCP Bridge which tab is currently active.
  */
 async function notifyActiveTab(): Promise<void> {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
+    const tab = await getBestActiveTab();
     if (tab && tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
       sendToBridge({
         type: 'TAB_READY',
@@ -144,8 +162,7 @@ async function handleBridgeCommand(msg: { id: string; action: string; params?: R
   if (action === 'NAVIGATE') {
     const targetUrl = params.url as string;
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
+      const tab = await getBestActiveTab();
       if (tab && tab.id) {
         await chrome.tabs.update(tab.id, { url: targetUrl });
         sendToBridge({ id, success: true, message: `Navigating to ${targetUrl}` });
@@ -161,8 +178,7 @@ async function handleBridgeCommand(msg: { id: string; action: string; params?: R
 
   // Find active tab for DOM inspection / interaction
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
+    const tab = await getBestActiveTab();
 
     if (!tab || !tab.id) {
       sendToBridge({
@@ -186,7 +202,23 @@ async function handleBridgeCommand(msg: { id: string; action: string; params?: R
 
     // Helper to send message with automatic dynamic injection recovery
     const dispatchWithRetry = (isRetry = false) => {
+      let isSettled = false;
+      const timeoutHandle = setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          sendToBridge({
+            id,
+            success: false,
+            message: `Tab communication timed out after 5000ms. The active tab ("${tab.title || tab.url}") was open before reloading the extension. Please refresh the page (press F5 or Ctrl+R in Chrome) to reconnect.`,
+          });
+        }
+      }, 5000);
+
       chrome.tabs.sendMessage(tabId, msg, async (response) => {
+        if (isSettled) return;
+        clearTimeout(timeoutHandle);
+        isSettled = true;
+
         if (chrome.runtime.lastError) {
           const errMsg = chrome.runtime.lastError.message || '';
 
@@ -200,10 +232,10 @@ async function handleBridgeCommand(msg: { id: string; action: string; params?: R
                   files: ['content.js'],
                 });
 
-                // Wait 120ms for DOM listener initialization
+                // Wait 150ms for DOM listener initialization
                 setTimeout(() => {
                   dispatchWithRetry(true);
-                }, 120);
+                }, 150);
                 return;
               } catch (injectErr: unknown) {
                 console.error('[DOM_X Background] Dynamic injection failed:', injectErr);

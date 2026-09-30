@@ -39,24 +39,25 @@ declare global {
   }
 }
 
-// Prevent duplicate execution if content script is injected multiple times
-if ((window as any).__DOM_X_INITIALIZED__) {
-  console.log('[DOM_X] Content script already active in tab.');
-} else {
-  (window as any).__DOM_X_INITIALIZED__ = true;
-  initDOMXContentScript();
+// If an earlier content script instance exists, cleanly tear it down before re-initializing
+if (typeof window !== 'undefined' && (window as any).__DOM_X_CLEANUP__) {
+  try {
+    (window as any).__DOM_X_CLEANUP__();
+  } catch {}
 }
+
+initDOMXContentScript();
 
 function initDOMXContentScript(): void {
   console.log('[DOM_X] Content script active. Initializing perception engine, DOM-VLM & AI MCP bridge...');
 
   const engine = new DOMPulseEngine({
-  debounceMs: 80,
-  observeAttributes: true,
-  observeCharacterData: true,
-  observeChildList: true,
-  observeSubtree: true,
-});
+    debounceMs: 80,
+    observeAttributes: true,
+    observeCharacterData: true,
+    observeChildList: true,
+    observeSubtree: true,
+  });
 
 // Initialize WebSocket bridge client connecting to local MCP server
 const bridgeClient = new DOMPulseBridgeClient({
@@ -96,6 +97,16 @@ const api = {
 
 window.__DOM_X__ = api;
 window.__DOMPULSE__ = api;
+
+// Provide cleanup routine so subsequent dynamic injections can cleanly replace this instance
+(window as any).__DOM_X_CLEANUP__ = () => {
+  try {
+    engine.stop();
+  } catch {}
+  try {
+    bridgeClient.disconnect();
+  } catch {}
+};
 
 // Dispatch events to window and Chrome runtime
 engine.onBatch((batch: EventBatch) => {
