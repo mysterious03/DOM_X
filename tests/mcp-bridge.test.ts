@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { DOMPulseBridgeServer } from '../src/mcp/bridge-server';
 import { DOMPulseBridgeClient } from '../src/core/bridge-client';
+import { DOMVLMEngine } from '../src/core/vlm-engine';
 
 describe('DOMPulse MCP Bridge Communication', () => {
   let server: DOMPulseBridgeServer;
   let client: DOMPulseBridgeClient;
+  let vlmEngine: DOMVLMEngine;
   const testPort = 8799;
 
   beforeAll(async () => {
@@ -22,6 +24,8 @@ describe('DOMPulse MCP Bridge Communication', () => {
       wsUrl: `ws://127.0.0.1:${testPort}`,
       autoReconnect: false,
     });
+    vlmEngine = new DOMVLMEngine();
+    client.attachVLMEngine(vlmEngine);
     client.connect();
 
     // Wait 200ms for connection handshake
@@ -111,5 +115,61 @@ describe('DOMPulse MCP Bridge Communication', () => {
     const mutations = server.getMutations(10);
     expect(mutations.length).toBeGreaterThanOrEqual(1);
     expect(mutations[mutations.length - 1].type).toBe('TEXT_CHANGED');
+  });
+
+  // ─── DOM-VLM Bridge Tests ─────────────────────────────────
+
+  it('handles VLM_PERCEIVE command via MCP bridge', async () => {
+    const res = await server.sendCommand('VLM_PERCEIVE', {});
+    expect(res.success).toBe(true);
+    expect(res.sceneText).toBeDefined();
+    expect(res.sceneText).toContain('DOM-VLM Perception');
+    expect(res.elapsedMs).toBeDefined();
+  });
+
+  it('handles VLM_LOCATE command and finds elements by plain English', async () => {
+    const res = await server.sendCommand('VLM_LOCATE', { query: 'cart button', topK: 1 });
+    expect(res.success).toBe(true);
+    expect(res.found).toBe(true);
+    expect(res.matches.length).toBeGreaterThanOrEqual(1);
+    expect(res.matches[0].element.label).toBe('Add to Cart');
+  });
+
+  it('handles VLM_DESCRIBE command via MCP bridge', async () => {
+    const res = await server.sendCommand('VLM_DESCRIBE', {});
+    expect(res.success).toBe(true);
+    expect(res.sceneText).toBeDefined();
+  });
+
+  // ─── HTTP REST & OpenAPI Endpoints ─────────────────────────
+
+  it('serves OpenAPI 3.1.0 specification at /openapi.json for ChatGPT Custom GPT', async () => {
+    const res = await fetch(`http://127.0.0.1:${testPort}/openapi.json`);
+    expect(res.status).toBe(200);
+    const spec = await res.json() as any;
+    expect(spec.openapi).toBe('3.1.0');
+    expect(spec.info.title).toContain('DOM_X');
+    expect(spec.paths['/api/vlm/perceive']).toBeDefined();
+    expect(spec.paths['/api/vlm/locate']).toBeDefined();
+    expect(spec.paths['/api/action/click']).toBeDefined();
+  });
+
+  it('serves OpenAI Function Calling tools schema at /api/openai/tools', async () => {
+    const res = await fetch(`http://127.0.0.1:${testPort}/api/openai/tools`);
+    expect(res.status).toBe(200);
+    const data = await res.json() as any;
+    expect(data.tools).toBeInstanceOf(Array);
+    const toolNames = data.tools.map((t: any) => t.function.name);
+    expect(toolNames).toContain('vlm_perceive');
+    expect(toolNames).toContain('vlm_locate');
+    expect(toolNames).toContain('browser_click');
+  });
+
+  it('serves health and tab status at /api/status', async () => {
+    const res = await fetch(`http://127.0.0.1:${testPort}/api/status`);
+    expect(res.status).toBe(200);
+    const data = await res.json() as any;
+    expect(data.success).toBe(true);
+    expect(data.connected).toBe(true);
   });
 });

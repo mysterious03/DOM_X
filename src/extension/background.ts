@@ -77,6 +77,37 @@ function sendToBridge(payload: unknown): void {
 }
 
 /**
+ * Proactively verifies if content script is loaded; if not, dynamically injects it.
+ */
+async function ensureContentScript(tabId: number, url?: string): Promise<boolean> {
+  if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('edge://') || url.startsWith('about:')) {
+    return false;
+  }
+  if (!chrome.scripting) {
+    return false;
+  }
+
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tabId, { action: 'PING' }, async (res) => {
+      if (chrome.runtime.lastError || !res?.pong) {
+        try {
+          console.log(`[DOM_X Background] Proactively injecting content.js into tab ${tabId} (${url})...`);
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['content.js'],
+          });
+          resolve(true);
+        } catch {
+          resolve(false);
+        }
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
+
+/**
  * Informs the MCP Bridge which tab is currently active.
  */
 async function notifyActiveTab(): Promise<void> {
@@ -92,6 +123,10 @@ async function notifyActiveTab(): Promise<void> {
         title: tab.title || 'Untitled Page',
         tabId: tab.id,
       });
+
+      if (tab.id) {
+        ensureContentScript(tab.id, tab.url);
+      }
     }
   } catch (err) {
     console.debug('[DOM_X Background] Tab query error:', err);
@@ -100,6 +135,8 @@ async function notifyActiveTab(): Promise<void> {
 
 /**
  * Dispatches an MCP command to the active tab's content script.
+ * If the content script is not yet attached (e.g. tab opened before extension load),
+ * dynamically injects content.js and retries the command automatically.
  */
 async function handleBridgeCommand(msg: { id: string; action: string; params?: Record<string, unknown> }): Promise<void> {
   const { id, action, params = {} } = msg;
@@ -136,32 +173,61 @@ async function handleBridgeCommand(msg: { id: string; action: string; params?: R
       return;
     }
 
-    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://'))) {
+    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:'))) {
       sendToBridge({
         id,
         success: false,
-        message: 'Cannot interact with internal Chrome pages (chrome://). Please navigate to a real website (e.g. https://google.com).',
+        message: 'Cannot interact with internal browser pages (chrome://). Please navigate to a real website (e.g. https://google.com).',
       });
       return;
     }
 
-    // Forward command to content script in the active tab
-    chrome.tabs.sendMessage(tab.id, msg, (response) => {
-      if (chrome.runtime.lastError) {
+    const tabId = tab.id;
+
+    // Helper to send message with automatic dynamic injection recovery
+    const dispatchWithRetry = (isRetry = false) => {
+      chrome.tabs.sendMessage(tabId, msg, async (response) => {
+        if (chrome.runtime.lastError) {
+          const errMsg = chrome.runtime.lastError.message || '';
+
+          // If content script is not running in this tab, inject it on the fly
+          if (!isRetry && (errMsg.includes('Receiving end does not exist') || errMsg.includes('Could not establish connection'))) {
+            if (chrome.scripting) {
+              try {
+                console.log(`[DOM_X Background] Dynamically injecting content.js into tab ${tabId}...`);
+                await chrome.scripting.executeScript({
+                  target: { tabId },
+                  files: ['content.js'],
+                });
+
+                // Wait 120ms for DOM listener initialization
+                setTimeout(() => {
+                  dispatchWithRetry(true);
+                }, 120);
+                return;
+              } catch (injectErr: unknown) {
+                console.error('[DOM_X Background] Dynamic injection failed:', injectErr);
+              }
+            }
+          }
+
+          sendToBridge({
+            id,
+            success: false,
+            message: `Tab communication error: ${errMsg}. If this tab was open before loading the extension, please refresh it once (press F5 or Ctrl+R).`,
+          });
+          return;
+        }
+
         sendToBridge({
           id,
-          success: false,
-          message: `Tab communication error: ${chrome.runtime.lastError.message}. Make sure the webpage has finished loading.`,
+          success: response ? response.success !== false : true,
+          ...(response || {}),
         });
-        return;
-      }
-
-      sendToBridge({
-        id,
-        success: response ? response.success !== false : true,
-        ...(response || {}),
       });
-    });
+    };
+
+    dispatchWithRetry(false);
   } catch (err: unknown) {
     sendToBridge({
       id,

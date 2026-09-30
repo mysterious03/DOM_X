@@ -3,16 +3,23 @@
  * Injected into webpages to observe DOM mutations, filter noise,
  * stream structured events to Chrome runtime and MCP server,
  * and execute AI perception actions (DOM scanning, click, type, HUD).
+ *
+ * Also hosts the DOM-VLM engine — a zero-cost, zero-latency replacement
+ * for screenshot-based Visual Language Models (VLMs like GPT-4o Vision,
+ * Moondream, Claude Vision). Provides perceive(), locate(), and describeScene().
  */
 
 import { DOMPulseEngine } from '../core/engine';
 import { DOMPulseBridgeClient } from '../core/bridge-client';
+import { DOMVLMEngine } from '../core/vlm-engine';
+import type { VLMLocateQuery } from '../core/vlm-types';
 import { EventBatch, PipelineMetrics } from '../core/types';
 
 // Declare window augmentation for in-page AI agent consumption
 declare global {
   interface Window {
     __DOM_X__?: {
+      // Core perception
       getMetrics: () => PipelineMetrics;
       getRecentEvents: (limit?: number) => unknown[];
       pause: () => void;
@@ -22,14 +29,28 @@ declare global {
       toggleHUD: (enabled: boolean) => boolean;
       click: (target: string) => unknown;
       type: (target: string, text: string) => unknown;
+      // DOM-VLM API (zero-cost VLM replacement)
+      perceive: () => unknown;
+      perceiveXml: () => unknown;
+      locate: (query: VLMLocateQuery) => unknown;
+      describeScene: () => string;
     };
     __DOMPULSE__?: Window['__DOM_X__'];
   }
 }
 
-console.log('[DOM_X] Content script active. Initializing perception engine & AI MCP bridge...');
+// Prevent duplicate execution if content script is injected multiple times
+if ((window as any).__DOM_X_INITIALIZED__) {
+  console.log('[DOM_X] Content script already active in tab.');
+} else {
+  (window as any).__DOM_X_INITIALIZED__ = true;
+  initDOMXContentScript();
+}
 
-const engine = new DOMPulseEngine({
+function initDOMXContentScript(): void {
+  console.log('[DOM_X] Content script active. Initializing perception engine, DOM-VLM & AI MCP bridge...');
+
+  const engine = new DOMPulseEngine({
   debounceMs: 80,
   observeAttributes: true,
   observeCharacterData: true,
@@ -48,8 +69,14 @@ bridgeClient.connect();
 
 const perceiver = bridgeClient.getPerceiver();
 
+// Initialize the DOM-VLM engine (zero-cost VLM replacement)
+const vlmEngine = new DOMVLMEngine();
+bridgeClient.attachVLMEngine(vlmEngine);
+(window as any).__DOM_X_RESOLVE_ELEMENT__ = (id: string) => vlmEngine.resolveElement(id);
+
 // Expose in-page programmatic API for browser agents
 const api = {
+  // Core perception & action
   getMetrics: () => engine.getMetrics(),
   getRecentEvents: (limit?: number) => engine.getRecentEvents(limit),
   pause: () => engine.pause(),
@@ -57,8 +84,14 @@ const api = {
   clear: () => engine.clear(),
   scan: (options?: { visibleOnly?: boolean; interactiveOnly?: boolean }) => perceiver.scan(options),
   toggleHUD: (enabled: boolean) => perceiver.toggleHUD(enabled),
+  togglePrivacy: (enabled?: boolean) => perceiver.togglePrivacyBlur(enabled),
   click: (target: string) => perceiver.click(target),
   type: (target: string, text: string) => perceiver.type(target, text),
+  // DOM-VLM API — zero-cost, zero-latency VLM replacement
+  perceive: () => vlmEngine.perceive(),
+  perceiveXml: () => vlmEngine.perceiveXml(),
+  locate: (query: VLMLocateQuery) => vlmEngine.locate(query),
+  describeScene: () => vlmEngine.describeScene(),
 };
 
 window.__DOM_X__ = api;
@@ -195,6 +228,17 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
           break;
         }
 
+        case 'TOGGLE_PRIVACY': {
+          const res = perceiver.togglePrivacyBlur(params.enabled !== undefined ? Boolean(params.enabled) : undefined);
+          sendResponse(res);
+          break;
+        }
+
+        case 'GET_PRIVACY_STATUS': {
+          sendResponse({ success: true, active: perceiver.isPrivacyShieldActive() });
+          break;
+        }
+
         case 'INSPECT': {
           const res = perceiver.inspect(params.target as string);
           sendResponse(res);
@@ -218,12 +262,57 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
           break;
         }
 
+        // ── DOM-VLM Commands ────────────────────────────────────────────────────
+        case 'VLM_PERCEIVE': {
+          try {
+            const output = vlmEngine.perceive();
+            sendResponse({ success: true, ...output });
+          } catch (err: unknown) {
+            sendResponse({ success: false, message: err instanceof Error ? err.message : String(err) });
+          }
+          break;
+        }
+
+        case 'VLM_LOCATE': {
+          try {
+            const result = vlmEngine.locate({
+              query: params.query as string,
+              kind: params.kind as any,
+              region: params.region as any,
+              topK: params.topK as number,
+            });
+            sendResponse({ success: true, ...result });
+          } catch (err: unknown) {
+            sendResponse({ success: false, message: err instanceof Error ? err.message : String(err) });
+          }
+          break;
+        }
+
+        case 'VLM_DESCRIBE': {
+          try {
+            const description = vlmEngine.describeScene();
+            sendResponse({ success: true, description });
+          } catch (err: unknown) {
+            sendResponse({ success: false, message: err instanceof Error ? err.message : String(err) });
+          }
+          break;
+        }
+
         // Popup controls
         case 'DOM_X_GET_STATE':
         case 'DOMPULSE_GET_STATE':
           sendResponse({
             metrics: engine.getMetrics(),
             recentEvents: engine.getRecentEvents(50),
+            temporalDiff: engine.getTemporalDiff(),
+          });
+          break;
+
+        case 'DOM_X_GET_TEMPORAL_DIFF':
+          sendResponse({
+            success: true,
+            temporalDiff: engine.getTemporalDiff(),
+            metrics: engine.getMetrics(),
           });
           break;
 
@@ -245,6 +334,10 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
           sendResponse({ success: true, metrics: engine.getMetrics() });
           break;
 
+        case 'PING':
+          sendResponse({ success: true, pong: true });
+          break;
+
         default:
           sendResponse({ success: false, message: `Unknown action: ${action}` });
           break;
@@ -257,11 +350,13 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
   });
 }
 
-// Start observing when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+  // Start observing when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      engine.start(document.documentElement);
+    });
+  } else {
     engine.start(document.documentElement);
-  });
-} else {
-  engine.start(document.documentElement);
+  }
 }
+

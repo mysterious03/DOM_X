@@ -40,4 +40,36 @@ describe('DOMPulse Engine Integration', () => {
     engine.stop();
     expect(engine.getMetrics().isActive).toBe(false);
   });
+
+  it('tracks temporal difference (Δt) and calculates token waste prevented', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const engine = new DOMPulseEngine({ debounceMs: 15 });
+    engine.start(container);
+
+    // Initial temporal state
+    const t0 = engine.getTemporalDiff();
+    expect(t0.addedNodes).toBe(0);
+    expect(t0.tokenWastePreventedPct).toBeGreaterThanOrEqual(90);
+
+    // Add input element and trigger mutation
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = 'hello';
+    container.appendChild(input);
+
+    await new Promise((r) => setTimeout(r, 45));
+
+    const t1 = engine.getTemporalDiff();
+    expect(t1.addedNodes).toBeGreaterThan(0);
+    expect(t1.recentDeltas.length).toBeGreaterThan(0);
+    expect(t1.tokenWastePreventedPct).toBeGreaterThan(90);
+
+    const metrics = engine.getMetrics();
+    expect(metrics.temporalDiff).toBeDefined();
+    expect(metrics.temporalDiff?.tokenWastePreventedPct).toBeGreaterThan(90);
+
+    engine.stop();
+  });
 });

@@ -63,6 +63,24 @@ export interface EventBatch {
   processingTimeMs?: number;
 }
 
+export interface TemporalDiffState {
+  baselineTimestamp: number;
+  deltaMs: number;
+  addedNodes: number;
+  removedNodes: number;
+  textChanges: number;
+  attrChanges: number;
+  rawTokensEstimated: number;
+  diffTokensEstimated: number;
+  tokenWastePreventedPct: number;
+  recentDeltas: Array<{
+    timestamp: number;
+    deltaMs: number;
+    type: string;
+    summary: string;
+  }>;
+}
+
 export interface PipelineMetrics {
   rawMutations: number;
   filteredMutations: number;
@@ -72,6 +90,7 @@ export interface PipelineMetrics {
   lastEventTimestamp: number | null;
   averageLatencyMs: number;
   isActive: boolean;
+  temporalDiff?: TemporalDiffState;
 }
 
 export interface FilterResult {

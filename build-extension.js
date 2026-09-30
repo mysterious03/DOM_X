@@ -109,7 +109,9 @@ async function runBuild() {
 
   // Verify manifest and output paths
   if (fs.existsSync('dist/src/extension/popup/index.html')) {
-    fs.copyFileSync('dist/src/extension/popup/index.html', 'dist/popup.html');
+    let popupHtml = fs.readFileSync('dist/src/extension/popup/index.html', 'utf8');
+    popupHtml = popupHtml.replace(/(\.\.\/)+assets\//g, './assets/');
+    fs.writeFileSync('dist/popup.html', popupHtml, 'utf8');
   }
 
   console.log('--- Build complete! dist/ is ready for Chrome, MCP, and CLI ---');

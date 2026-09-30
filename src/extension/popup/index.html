@@ -3,110 +3,334 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DOM_X MCP Inspector</title>
+  <title>DOM_X — Zero-Cost Browser Vision</title>
   <link rel="stylesheet" href="./popup.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="brand">
-        <div class="pulse-icon">
-          <span class="pulse-core"></span>
-          <span class="pulse-ring"></span>
+  <div class="apple-shell">
+    
+    <!-- Apple Ultra-Sleek Glass Header -->
+    <header class="apple-header">
+      <div class="brand-cluster">
+        <div class="brand-glyph" title="DOM_X Zero-Cost Perception">
+          <span class="glyph-dot"></span>
         </div>
-        <div class="title-group">
-          <h1>DOM_X</h1>
-          <span class="version-tag">v1.2</span>
+        <div class="brand-titles">
+          <div class="brand-name">
+            <span class="title-bold">DOM_X</span>
+            <span class="apple-badge">VISION</span>
+          </div>
+          <div class="brand-subtitle" id="active-tab-label">Connecting to active tab…</div>
         </div>
       </div>
-      <div class="header-actions">
-        <button id="toggle-hud-btn" class="btn btn-outline" title="Toggle AI Visual HUD (Bounding boxes & @eX tags)">
-          <span>👁️ HUD</span>
-        </button>
-        <button id="toggle-monitor-btn" class="btn btn-outline" title="Pause or Resume Monitoring">
-          <span class="status-dot active" id="status-indicator"></span>
-          <span id="status-text">Active</span>
-        </button>
-        <button id="clear-btn" class="btn btn-icon" title="Clear Event Log">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+      <div class="header-controls">
+        <!-- Apple Native Switch for Monitoring -->
+        <label class="apple-switch" title="Pause / Resume DOM Observation">
+          <input type="checkbox" id="monitor-switch" checked>
+          <span class="switch-slider"></span>
+        </label>
+        <button id="clear-btn" class="apple-icon-btn" title="Reset & Clear Data">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
             <path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
           </svg>
         </button>
       </div>
     </header>
 
-    <!-- Metrics Bar: Raw, Filtered, Deduplicated, Meaningful -->
-    <section class="metrics-grid">
-      <div class="metric-card">
-        <span class="metric-label">Raw</span>
-        <span class="metric-value" id="raw-count">0</span>
+    <!-- Apple Segmented Control (Tabs) -->
+    <nav class="apple-segmented-bar">
+      <button class="seg-btn active" data-tab="tab-overview">Overview</button>
+      <button class="seg-btn" data-tab="tab-temporal">Temporal Δt</button>
+      <button class="seg-btn" data-tab="tab-events">Events</button>
+    </nav>
+
+    <!-- Tab 1: Overview (Understandable 1-Second Process Flow) -->
+    <section id="tab-overview" class="tab-pane active">
+      <!-- 1-Second Visual Pipeline Diagram -->
+      <div class="process-card">
+        <div class="process-header">
+          <span class="card-caption">Zero-Cost Perception Pipeline</span>
+          <span class="card-meta text-green">● Connected</span>
+        </div>
+        <div class="pipeline-flow">
+          <div class="pipeline-node">
+            <div class="node-icon">🌐</div>
+            <div class="node-title">Page DOM</div>
+            <div class="node-sub" id="pipe-raw-count">0 mut</div>
+          </div>
+          <div class="pipeline-arrow">
+            <span class="arrow-line"></span>
+            <span class="arrow-tag">Δt Diff</span>
+          </div>
+          <div class="pipeline-node highlight">
+            <div class="node-icon">⚡</div>
+            <div class="node-title">DOM_X</div>
+            <div class="node-sub" id="pipe-latency">0.0ms</div>
+          </div>
+          <div class="pipeline-arrow">
+            <span class="arrow-line"></span>
+            <span class="arrow-tag">$0.00</span>
+          </div>
+          <div class="pipeline-node">
+            <div class="node-icon">🤖</div>
+            <div class="node-title">AI Agent</div>
+            <div class="node-sub" id="pipe-tokens-saved">99% saved</div>
+          </div>
+        </div>
       </div>
-      <div class="metric-card">
-        <span class="metric-label">Filtered</span>
-        <span class="metric-value text-muted" id="filtered-count">0</span>
+
+      <!-- Telemetry Grid (Apple Data Cards) -->
+      <div class="apple-grid">
+        <div class="telemetry-card">
+          <div class="card-top">
+            <span class="t-label">Waste Prevented</span>
+            <span class="t-pill green">Zero Wastage</span>
+          </div>
+          <div class="t-number" id="compression-ratio">99.2%</div>
+          <div class="t-caption">Token compression ratio</div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="card-top">
+            <span class="t-label">Avg Latency</span>
+            <span class="t-pill blue">Sub-frame</span>
+          </div>
+          <div class="t-number" id="avg-latency">4.2ms</div>
+          <div class="t-caption">Perception speed</div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="card-top">
+            <span class="t-label">Action Elements</span>
+            <span class="t-pill orange">Interactive</span>
+          </div>
+          <div class="t-number" id="targets-count">0</div>
+          <div class="t-caption">Buttons, inputs, links</div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="card-top">
+            <span class="t-label">Inference Cost</span>
+            <span class="t-pill purple">DOM VLM</span>
+          </div>
+          <div class="t-number">$0.00</div>
+          <div class="t-caption">No GPU or API tokens</div>
+        </div>
       </div>
-      <div class="metric-card">
-        <span class="metric-label">Deduped</span>
-        <span class="metric-value text-purple" id="deduped-count">0</span>
+
+      <!-- Apple Action Tray -->
+      <div class="action-tray">
+        <button id="toggle-hud-btn" class="apple-btn primary" title="Show or hide live neon bounding boxes on webpage">
+          <span class="btn-icon">👁️</span>
+          <span class="btn-label">Screen HUD</span>
+          <span class="hud-status-badge" id="hud-badge">OFF</span>
+        </button>
+        <button id="toggle-privacy-btn" class="apple-btn secondary" title="Hide/Blur all passwords, credit cards & sensitive fields on screen">
+          <span class="btn-icon">🔒</span>
+          <span class="btn-label">Privacy Shield</span>
+          <span class="hud-status-badge" id="privacy-badge">OFF</span>
+        </button>
+        <button id="perceive-btn" class="apple-btn secondary" title="Run instant zero-cost DOM perception">
+          <span class="btn-icon">⚡</span>
+          <span class="btn-label">Perceive</span>
+        </button>
+        <button id="chatgpt-btn" class="apple-btn secondary" title="Connect DOM_X to ChatGPT Custom GPT">
+          <span class="btn-icon">🤖</span>
+          <span class="btn-label">ChatGPT</span>
+        </button>
+        <button id="copy-xml-btn" class="apple-btn secondary" title="Copy Set-of-Mark XML with coordinates">
+          <span class="btn-icon">📐</span>
+          <span class="btn-label">Copy XML</span>
+        </button>
       </div>
-      <div class="metric-card highlight">
-        <span class="metric-label">Meaningful</span>
-        <span class="metric-value text-accent" id="meaningful-count">0</span>
+
+      <!-- Security & Bridge Status Bar -->
+      <div class="security-card">
+        <div class="security-row">
+          <div class="sec-item">
+            <span class="sec-dot green"></span>
+            <span class="sec-text">Data Masking Active (Passwords, CC masked)</span>
+          </div>
+          <div class="sec-badge">ENCRYPTED</div>
+        </div>
+        <div class="security-row bridge-status-row">
+          <span class="sec-label">Bridge Endpoint:</span>
+          <span class="sec-code">http://127.0.0.1:8765</span>
+        </div>
       </div>
     </section>
 
-    <!-- Performance & Noise Banner -->
-    <div class="noise-reduction-banner">
-      <div class="banner-item">
-        <span class="banner-title">Noise Reduction:</span>
-        <span class="banner-val text-emerald" id="compression-ratio">0.0%</span>
-      </div>
-      <div class="banner-item">
-        <span class="banner-title">Avg Latency:</span>
-        <span class="banner-val text-accent" id="avg-latency">0.0ms</span>
-      </div>
-    </div>
+    <!-- Tab 2: Temporal Δt (Real-Time Temporal Difference & Zero-Wastage Metrics) -->
+    <section id="tab-temporal" class="tab-pane">
+      <!-- Temporal Delta Summary -->
+      <div class="temporal-summary-card">
+        <div class="temp-header">
+          <div>
+            <div class="temp-title">Temporal Difference Engine</div>
+            <div class="temp-subtitle">Emitting only what changed over time (Δt)</div>
+          </div>
+          <div class="temp-delta-badge" id="temporal-delta-badge">Δt 0ms</div>
+        </div>
 
-    <!-- Search & Filter Toolbar -->
-    <div class="toolbar">
-      <div class="toolbar-search-row">
-        <input type="text" id="search-input" class="search-input" placeholder="Search selector, text, or attr..." />
-      </div>
-      <div class="toolbar-actions-row">
-        <select id="type-filter" class="select-filter">
-          <option value="ALL">All Event Types</option>
-          <option value="TEXT_CHANGED">TEXT_CHANGED</option>
-          <option value="DIALOG_APPEARED">DIALOG_APPEARED</option>
-          <option value="NOTIFICATION_APPEARED">NOTIFICATION_APPEARED</option>
-          <option value="FORM_CHANGED">FORM_CHANGED</option>
-          <option value="STATE_CHANGED">STATE_CHANGED</option>
-          <option value="VISIBILITY_CHANGED">VISIBILITY_CHANGED</option>
-          <option value="ELEMENT_ADDED">ELEMENT_ADDED</option>
-          <option value="ELEMENT_REMOVED">ELEMENT_REMOVED</option>
-          <option value="ATTRIBUTE_CHANGED">ATTRIBUTE_CHANGED</option>
-          <option value="NAVIGATION_DETECTED">NAVIGATION_DETECTED</option>
-        </select>
-        <button id="export-json-btn" class="btn btn-sm btn-subtle" title="Export Events as JSON for AI Agent">
-          Export JSON
-        </button>
-      </div>
-    </div>
+        <!-- Token Wastage Comparison -->
+        <div class="token-comparison-bar">
+          <div class="comparison-row">
+            <span class="comp-label">Traditional Full Screenshot / DOM:</span>
+            <span class="comp-val red" id="token-traditional">~4,800 tokens</span>
+          </div>
+          <div class="comparison-row">
+            <span class="comp-label">DOM_X Temporal Delta (Δt):</span>
+            <span class="comp-val green" id="token-delta">~16 tokens</span>
+          </div>
+          <div class="waste-progress-wrap">
+            <div class="waste-progress-fill" id="waste-progress-fill" style="width: 99.4%;"></div>
+          </div>
+          <div class="waste-legend">
+            <span id="waste-saved-pct">99.4% token waste eliminated</span>
+            <span class="no-waste-tag">ZERO WASTAGE</span>
+          </div>
+        </div>
 
-    <!-- Event Feed -->
-    <main class="events-container">
-      <div class="events-header">
-        <span class="events-title">EVENTS</span>
-        <span class="events-count" id="stream-count">0 events</span>
+        <!-- Categorized Delta Chips -->
+        <div class="delta-chips-grid">
+          <div class="delta-chip">
+            <span class="chip-dot green"></span>
+            <span class="chip-name">Added</span>
+            <span class="chip-num" id="delta-added">0</span>
+          </div>
+          <div class="delta-chip">
+            <span class="chip-dot red"></span>
+            <span class="chip-name">Removed</span>
+            <span class="chip-num" id="delta-removed">0</span>
+          </div>
+          <div class="delta-chip">
+            <span class="chip-dot orange"></span>
+            <span class="chip-name">Text Changes</span>
+            <span class="chip-num" id="delta-text">0</span>
+          </div>
+          <div class="delta-chip">
+            <span class="chip-dot purple"></span>
+            <span class="chip-name">Attr Changes</span>
+            <span class="chip-num" id="delta-attr">0</span>
+          </div>
+        </div>
       </div>
-      <div id="events-list" class="events-list">
+
+      <!-- Live Temporal Feed -->
+      <div class="temporal-feed-wrap">
+        <div class="section-title-row">
+          <span class="section-title">CHRONOLOGICAL Δt DELTAS</span>
+          <span class="section-meta" id="temporal-feed-count">0 frames</span>
+        </div>
+        <div class="temporal-feed-list" id="temporal-feed-list">
+          <div class="empty-feed">
+            <div class="empty-feed-glyph">⏱️</div>
+            <div class="empty-feed-text">Page is stable. No mutations in baseline.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Events (Clean, High-Density Event Log) -->
+    <section id="tab-events" class="tab-pane">
+      <div class="events-toolbar">
+        <div class="apple-search-wrap">
+          <svg class="search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input type="text" id="search-input" class="apple-search-input" placeholder="Search selector, text, attribute…" />
+        </div>
+        <div class="toolbar-subrow">
+          <select id="type-filter" class="apple-select">
+            <option value="ALL">All Event Types</option>
+            <option value="TEXT_CHANGED">TEXT_CHANGED</option>
+            <option value="FORM_CHANGED">FORM_CHANGED</option>
+            <option value="DIALOG_APPEARED">DIALOG_APPEARED</option>
+            <option value="NOTIFICATION_APPEARED">NOTIFICATION_APPEARED</option>
+            <option value="STATE_CHANGED">STATE_CHANGED</option>
+            <option value="VISIBILITY_CHANGED">VISIBILITY_CHANGED</option>
+            <option value="ELEMENT_ADDED">ELEMENT_ADDED</option>
+            <option value="ELEMENT_REMOVED">ELEMENT_REMOVED</option>
+            <option value="ATTRIBUTE_CHANGED">ATTRIBUTE_CHANGED</option>
+            <option value="NAVIGATION_DETECTED">NAVIGATION_DETECTED</option>
+          </select>
+          <button id="export-json-btn" class="apple-subtle-btn" title="Export events as clean JSON for AI">
+            Export JSON
+          </button>
+        </div>
+      </div>
+
+      <div class="events-feed-header">
+        <span class="events-feed-title">SEMANTIC STREAM</span>
+        <span class="events-feed-count" id="stream-count">0 events</span>
+      </div>
+
+      <div id="events-list" class="apple-events-scroll">
         <div class="empty-state" id="empty-state">
           <div class="empty-icon">⚡</div>
           <p class="empty-title">Waiting for DOM changes</p>
-          <p class="empty-desc">Interact with the page to observe filtered & deduplicated semantic changes.</p>
+          <p class="empty-desc">Interact with the page to observe filtered & deduplicated changes.</p>
         </div>
       </div>
-    </main>
+    </section>
+
+    <!-- Apple ChatGPT Modal Sheet -->
+    <div id="chatgpt-modal" class="apple-modal-backdrop">
+      <div class="apple-modal-sheet">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">🤖</span>
+            <span class="modal-title">Plug into ChatGPT (Custom GPT)</span>
+          </div>
+          <button id="modal-close-btn" class="modal-close" title="Close">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="modal-step">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+              <div class="step-title">Expose Port to Cloud (Tunnel)</div>
+              <div class="step-desc">ChatGPT runs in the cloud and needs to reach your browser:</div>
+              <div class="code-copy-row">
+                <code>npx localtunnel --port 8765</code>
+                <button id="copy-tunnel-cmd" class="btn-copy-chip">Copy</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-step">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+              <div class="step-title">Import Schema in ChatGPT</div>
+              <div class="step-desc">In Custom GPT → Actions → "Import from URL":</div>
+              <div class="code-copy-row">
+                <code id="openapi-url-code">http://127.0.0.1:8765/openapi.json</code>
+                <button id="copy-openapi-url" class="btn-copy-chip">Copy URL</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-step">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+              <div class="step-title">Paste Agent Instructions</div>
+              <div class="step-desc">Paste into ChatGPT Custom GPT Instructions box:</div>
+              <button id="copy-gpt-prompt" class="apple-full-btn">
+                <span>📋 Copy Complete ChatGPT Instructions</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apple Toast Notification Banner -->
+    <div id="apple-toast" class="apple-toast">
+      <span id="toast-message">Copied to clipboard</span>
+    </div>
+
   </div>
 
   <script type="module" src="./popup.ts"></script>

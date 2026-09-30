@@ -349,6 +349,69 @@ export class DOMPulseMCPServer {
               properties: {},
             },
           },
+
+          // ─── DOM-VLM Tools (Zero-Cost VLM Replacement) ───────────────────
+          {
+            name: 'vlm_perceive',
+            description:
+              '[DOM-VLM] Zero-cost visual perception of the current browser page. Replaces screenshot-based VLMs (GPT-4o Vision, Moondream, Claude Vision). ' +
+              'Returns a structured visual scene with bounding boxes, spatial layout, element groups, Set-of-Mark element IDs, and an LLM-readable text description. ' +
+              'Cost: $0.00 | Latency: ~5–15ms | No GPU | No API calls | Works on any website.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                format: {
+                  type: 'string',
+                  enum: ['text', 'json', 'full'],
+                  description: '"text" = LLM-ready scene description only, "json" = structured scene object, "full" = both text + JSON.',
+                  default: 'text',
+                },
+              },
+            },
+          },
+          {
+            name: 'vlm_locate',
+            description:
+              '[DOM-VLM] Natural language element locator. Finds browser elements by semantic intent without screenshots or VLM inference. ' +
+              'Example: vlm_locate({ query: "the checkout button" }) returns the element with its bounding box and @eX action ID. ' +
+              'Cost: $0.00 | Latency: ~2–8ms | Works on any website.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Natural language description of the element to find (e.g. "submit button", "email input", "sign in link", "price of the first product").',
+                },
+                kind: {
+                  type: 'string',
+                  enum: ['button', 'link', 'input', 'textarea', 'select', 'checkbox', 'radio', 'heading', 'image', 'modal', 'dialog', 'alert', 'navigation', 'form', 'card', 'tab', 'menu'],
+                  description: 'Optional: narrow the search to a specific element kind.',
+                },
+                region: {
+                  type: 'string',
+                  enum: ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'],
+                  description: 'Optional: restrict matches to a specific viewport region.',
+                },
+                topK: {
+                  type: 'number',
+                  description: 'Number of top matches to return (default: 1).',
+                  default: 1,
+                },
+              },
+              required: ['query'],
+            },
+          },
+          {
+            name: 'vlm_describe_scene',
+            description:
+              '[DOM-VLM] Generates a compact, LLM-readable natural language description of the current browser viewport. ' +
+              'Equivalent to sending a screenshot to a VLM and asking "describe this page" — but with zero cost, zero API calls, and ~5ms latency. ' +
+              'Ideal for providing page context to LLMs before issuing action commands.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
         ],
       };
     });
@@ -565,6 +628,104 @@ export class DOMPulseMCPServer {
             const status = this.bridge.getStatus();
             return {
               content: [{ type: 'text', text: JSON.stringify(status, null, 2) }],
+            };
+          }
+
+          // ─── DOM-VLM Tool Handlers ──────────────────────────────────────────────────
+          case 'vlm_perceive': {
+            const format = (args.format as string) || 'text';
+            const result = await this.bridge.sendCommand('VLM_PERCEIVE', {});
+
+            if (!result.success && result.message) {
+              return {
+                isError: true,
+                content: [{ type: 'text', text: `DOM-VLM Error: ${result.message}` }],
+              };
+            }
+
+            if (format === 'json') {
+              return {
+                content: [{ type: 'text', text: JSON.stringify(result.scene || result, null, 2) }],
+              };
+            } else if (format === 'full') {
+              return {
+                content: [
+                  { type: 'text', text: result.sceneText || '' },
+                  { type: 'text', text: '\n\n--- JSON Scene ---\n' + JSON.stringify(result.scene || result, null, 2) },
+                ],
+              };
+            }
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text:
+                    (result.sceneText || 'No scene data.') +
+                    `\n\n[DOM-VLM] Cost: ${result.cost ?? '$0.00'} | Elapsed: ${result.elapsedMs ?? '?'}ms`,
+                },
+              ],
+            };
+          }
+
+          case 'vlm_locate': {
+            const query = String(args.query || '');
+            if (!query) {
+              return {
+                isError: true,
+                content: [{ type: 'text', text: 'DOM-VLM Error: "query" parameter is required for vlm_locate.' }],
+              };
+            }
+
+            const result = await this.bridge.sendCommand('VLM_LOCATE', {
+              query,
+              kind: args.kind,
+              region: args.region,
+              topK: Number(args.topK) || 1,
+            });
+
+            if (!result.found || !result.matches || result.matches.length === 0) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `[DOM-VLM] Element not found for query: "${query}"\nTip: Try a broader query or use vlm_perceive to see all visible elements first.`,
+                  },
+                ],
+              };
+            }
+
+            const matchLines = result.matches.map((m: any, i: number) => {
+              const el = m.element;
+              return [
+                `Match #${i + 1} (score: ${(m.score * 100).toFixed(0)}%) — Reason: ${m.reason}`,
+                `  Action ID: ${el.actionId}`,
+                `  Kind: ${el.kind} | Label: "${el.label}"`,
+                `  Click target: (${el.bbox.centerX}, ${el.bbox.centerY})`,
+                `  Region: ${el.region} | In Viewport: ${el.inViewport}`,
+                `  Selector: ${el.selector}`,
+              ].join('\n');
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `[DOM-VLM] Located "${query}" — ${result.matches.length} match(es) in ${result.elapsedMs}ms:\n\n${matchLines.join('\n\n')}`,
+                },
+              ],
+            };
+          }
+
+          case 'vlm_describe_scene': {
+            const result = await this.bridge.sendCommand('VLM_DESCRIBE', {});
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: result.description || result.sceneText || 'No scene description available.',
+                },
+              ],
             };
           }
 

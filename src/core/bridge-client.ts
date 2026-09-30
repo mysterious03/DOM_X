@@ -6,6 +6,7 @@
 import { DOMAgentPerceiver } from './agent-dom';
 import { DOMPulseEngine } from './engine';
 import { DOMPulseEvent } from './types';
+import type { DOMVLMEngine } from './vlm-engine';
 
 export interface BridgeConfig {
   wsUrl?: string;
@@ -21,6 +22,7 @@ export class DOMPulseBridgeClient {
   private isConnected: boolean = false;
   private perceiver: DOMAgentPerceiver;
   private engine: DOMPulseEngine | null = null;
+  private vlmEngine: DOMVLMEngine | null = null;
 
   constructor(config: BridgeConfig = {}) {
     this.wsUrl = config.wsUrl || 'ws://127.0.0.1:8765';
@@ -34,6 +36,10 @@ export class DOMPulseBridgeClient {
     this.engine.onBatch((batch) => {
       this.sendMutationBatch(batch.events);
     });
+  }
+
+  public attachVLMEngine(vlm: DOMVLMEngine): void {
+    this.vlmEngine = vlm;
   }
 
   public getPerceiver(): DOMAgentPerceiver {
@@ -211,11 +217,83 @@ export class DOMPulseBridgeClient {
         }
 
         case 'TOGGLE_HUD': {
-          const enabled = Boolean(params.enabled);
+          const enabled = params.enabled !== undefined ? Boolean(params.enabled) : undefined;
           const active = this.perceiver.toggleHUD(enabled);
           this.send({ id, success: true, hudActive: active });
           break;
         }
+
+        // ─── DOM-VLM Actions ─────────────────────────────────────
+        case 'VLM_PERCEIVE': {
+          if (!this.vlmEngine) {
+            this.send({ id, success: false, message: 'DOM-VLM Engine is not attached to this tab' });
+            break;
+          }
+          try {
+            const output = this.vlmEngine.perceive(Boolean(params.forceRefresh));
+            this.perceiver.registerExternalElements(this.vlmEngine.getElementMap());
+            this.perceiver.flashHUD(typeof params.highlightDuration === 'number' ? params.highlightDuration : 2500);
+            this.send({ id, success: true, result: { success: true, ...output } });
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.send({ id, success: false, message });
+          }
+          break;
+        }
+
+        case 'VLM_LOCATE': {
+          if (!this.vlmEngine) {
+            this.send({ id, success: false, message: 'DOM-VLM Engine is not attached to this tab' });
+            break;
+          }
+          try {
+            const query = String(params.query || '');
+            const topK = typeof params.topK === 'number' ? params.topK : 3;
+            const output = this.vlmEngine.locate({ query, topK, kind: params.kind as any, region: params.region as any });
+            this.perceiver.registerExternalElements(this.vlmEngine.getElementMap());
+            if (output.found && output.matches.length > 0) {
+              this.perceiver.highlight(output.matches[0].element.actionId, '#10b981');
+            }
+            this.send({ id, success: true, result: { success: true, ...output } });
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.send({ id, success: false, message });
+          }
+          break;
+        }
+
+        case 'VLM_DESCRIBE': {
+          if (!this.vlmEngine) {
+            this.send({ id, success: false, message: 'DOM-VLM Engine is not attached to this tab' });
+            break;
+          }
+          try {
+            const description = this.vlmEngine.describeScene();
+            this.send({ id, success: true, result: { success: true, description, sceneText: description } });
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.send({ id, success: false, message });
+          }
+          break;
+        }
+
+        case 'VLM_XML_PERCEIVE': {
+          if (!this.vlmEngine) {
+            this.send({ id, success: false, message: 'DOM-VLM Engine is not attached to this tab' });
+            break;
+          }
+          try {
+            const output = this.vlmEngine.perceiveXml(Boolean(params.forceRefresh));
+            this.perceiver.registerExternalElements(this.vlmEngine.getElementMap());
+            this.perceiver.flashHUD(typeof params.highlightDuration === 'number' ? params.highlightDuration : 2500);
+            this.send({ id, success: true, result: { success: true, ...output } });
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.send({ id, success: false, message });
+          }
+          break;
+        }
+
 
         default:
           this.send({ id, success: false, message: `Unknown bridge action: ${action}` });
